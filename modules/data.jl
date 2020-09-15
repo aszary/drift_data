@@ -1,6 +1,7 @@
 module Data
     using CSV
     using DataFrames
+    using Query
 
 
     """ get pulsar parameters using psrcat """
@@ -9,9 +10,13 @@ module Data
         run(pipeline(cmd, stdout="data/pulsars.csv"))
         df = CSV.read("data/pulsars.csv" ; comment="#")
         #df = CSV.read("data/pulsars.csv")
-        insertcols!(df, 2, :PSRJ=>PSRJs)
+        insertcols!(df, 2, "PSRJ"=>PSRJs)
         # delete column 5!
         select!(df, Not([:Column5]))
+        # rename EDOT
+        rename!(df, Dict("(ergs/s)" => :EDOT))
+        rename!(df, Dict("(s)" => :P0))
+        rename!(df, Dict(" _1" => :PSRB))
         return df
     end
 
@@ -20,22 +25,42 @@ module Data
         p3_rahul_err = [1, 0.08, 0.8, 0.1, 0.01, 0.1, 0.1, 0.2, 0.01, 0.03, 0.05, 3.6, 0.006, 1.6, 0.2, 1.6, 0.09, 0.6, 0.3, 0.7, 0.04, 0.05, 0.1]
         rahul_dir = ["ND", "PD", "ND", "PD", "ND", "ND", "ND", "ND", "PD", "PD", "PD", "ND", "ND", "ND", "ND", "ND", "ND", "ND", "PD", "ND", "PD", "PD/ND", "PD" ]
 
-        println(length(p3_rahul))
-        println(length(p3_rahul_err))
-        println(length(rahul_dir))
-        insertcols!(df, 6, :P_3=>p3_rahul)
+        insertcols!(df, 6, :P3=>p3_rahul)
         insertcols!(df, 7, :P3_err=>p3_rahul_err)
-        insertcols!(df, 8, :Drift_dir=>rahul_dir)
-        println(df)
+        insertcols!(df, 8, :drift_dir=>rahul_dir)
+        #println(names(df))
+        #println(df[:P_3])
+        #println(df[:PSRJ])
+    end
+
+    function add_p3_modes!(df)
+        psrs = ["J0034-0721", "J0034-0721", "J1555-3134", "J1727-2739", "J1822-2256", "J1822-2256", "J1921+1948", "J1921+1948", "J1946+1805", "J2305+3100"]
+        p3_rahul = [6.5, 4.0, 10.2, 5.2, 14.3, 10.7, 3.8, 2.45, 6.1, 3]
+        p3_rahul_err = [0.5, 0.5, 1.0, 0.9, 1.8, 1.1, 0.1, 0.04, 1.7, 0]
+
+
+        for (ii, psr) in enumerate(psrs)
+            rec = @from i in df begin
+                @where i.PSRJ == psr
+                @select i
+                @collect DataFrame
+            end
+            rec = rec[1, :] # one record only, but DataFrameRow!
+            rec[:P3] = p3_rahul[ii]
+            rec[:P3_err] = p3_rahul_err[ii]
+            push!(df, collect(rec))
+        end
     end
 
 
-    function save_data()
+    function data()
         #df = DataFrame(PSRJ=String[], P0=Float64[], P1=Float64[], P3=Float64[], EDOT=Float64[])
-        # magic number -7
         psrs_coherent = ["J0034-0721", "J0108+6608", "J0151-0635", "J0421-0345", "J0459-0210", "J0814+7429", "J0820-1350", "J0934-5249", "J0946+0951", "J1418-3921", "J1543-0620", "J1555-3134", "J1720-2933", "J1727-2739", "J1816-2650", "J1822-2256", "J1901-0906", "J1919+0134", "J1921+1948", "J1946+1805", "J2046-0421", "J2305+3100", "J2313+4253"]
         df = get_pars(psrs_coherent, "PSRB P0 EDOT")
         add_p3!(df)
+        add_p3_modes!(df)
+
+        return df
 
 
         #=
