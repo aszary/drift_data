@@ -6,7 +6,7 @@ module DriftData
     function main()
         df = Data.data()
         Plot.p3_edot(df; mod="raw")
-
+        Plot.p3_edot(df; p3_key="P3_LBC", mod="rahul")
         println("Bye")
     end
 
