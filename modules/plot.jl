@@ -1,6 +1,6 @@
 module Plot
     using PyPlot
-    using DataFrames, Query
+    using DataFrames, Query, GLM
 
 
     function p3_edot(df; p3_key="P3", mod="1")
@@ -30,6 +30,13 @@ module Plot
         #println(q1)
         #println(q2)
 
+        x = log10.(collect(df[:EDOT]))
+        y = log10.(collect(df[:P3_LBC]))
+        data = DataFrame(X=x, Y=y)
+        ols = lm(@formula(Y ~ X), data)
+        println(ols)
+
+        ms = 10
 
         rc("font", size=8.)
         rc("axes", linewidth=0.5)
@@ -37,16 +44,21 @@ module Plot
 
         figure(figsize=(3.14961, 1.9465685427418518), frameon=true)  # 8cm x  golden ratio
         subplots_adjust(left=0.17, bottom=0.21, right=0.99, top=0.99, wspace=0., hspace=0.)
-        scatter(q1[:EDOT], q1[p3_key], label="ND")
-        scatter(q2[:EDOT], q2[p3_key], label="PD")
-        scatter(q3[:EDOT], q3[p3_key], label="PD/ND")
+        scatter(q1[:EDOT], q1[p3_key], label="ND", marker="s", s=ms)
+        scatter(q2[:EDOT], q2[p3_key], label="PD", s=ms)
+        scatter(q3[:EDOT], q3[p3_key], label="PD/ND", s=ms)
         for i in 1:length(q1[:EDOT])
             text(q1[:EDOT][i], q1[p3_key][i], q1[:PSRJ][i], size=5)
         end
+        for i in 1:length(q2[:EDOT])
+            text(q2[:EDOT][i], q2[p3_key][i], q2[:PSRJ][i], size=5)
+        end
+
         loglog()
         legend()
         #xlim(9e29, 1.1e33)
         #ylim(0.9, 110)
+        ylim(0.9, 30)
         xlabel("\$\\dot{E}\$ (ergs/s)")
         ylabel("\$P_3\$ (in units \$P\$)")
         savefig("outdir/p3_edot_$mod.pdf")
