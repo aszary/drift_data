@@ -25,7 +25,7 @@ module Data
     function add_p3!(df)
         p3_rahul = [13, 2.04, 14.4, 3.1, 2.36, 11.1, 4.7, 3.9, 2.15, 2.49, 3.01, 17.5, 2.452, 9.7, 4.1, 19.6, 3.05, 6.6, 6.1, 13.8, 2.75, 2.05, 2.1]
         p3_rahul_err = [1, 0.08, 0.8, 0.1, 0.01, 0.1, 0.1, 0.2, 0.01, 0.03, 0.05, 3.6, 0.006, 1.6, 0.2, 1.6, 0.09, 0.6, 0.3, 0.7, 0.04, 0.05, 0.1]
-        rahul_dir = ["ND", "PD", "ND", "PD", "ND", "ND", "ND", "ND", "PD", "PD", "PD", "ND", "ND", "ND", "ND", "ND", "ND", "ND", "PD", "ND", "PD", "PD/ND", "PD" ]
+        rahul_dir = ["PD", "ND", "PD", "ND", "PD", "PD", "PD", "PD", "ND", "ND", "ND", "PD", "PD", "PD", "PD", "PD", "PD", "PD", "ND", "PD", "ND", "PD/ND", "ND" ]
         insertcols!(df, 6, :P3=>p3_rahul)
         insertcols!(df, 7, :P3_err=>p3_rahul_err)
         insertcols!(df, 8, :drift_dir=>rahul_dir)
@@ -33,7 +33,7 @@ module Data
 
     function add_p3_modes!(df)
         psrs = ["J0034-0721", "J0034-0721", "J1555-3134", "J1727-2739", "J1822-2256", "J1921+1948", "J1921+1948", "J1946+1805", "J2305+3100"] # "J1822-2256",
-        p3_rahul = [6.5, 4.0, 10.2, 5.2, 10.7, 3.8, 2.45, 6.1, 3] # 14.3, 
+        p3_rahul = [6.5, 4.0, 10.2, 5.2, 10.7, 3.8, 2.45, 6.1, 3] # 14.3,
         p3_rahul_err = [0.5, 0.5, 1.0, 0.9, 1.8, 1.1, 0.1, 0.04, 1.7, 0]
         for (ii, psr) in enumerate(psrs)
             rec = @from i in df begin
@@ -53,26 +53,24 @@ module Data
 
         df[:P3_LBC] = -7.0 # magic number
         for r in eachrow(df)
-            if r.drift_dir == "PD"
+            if r.drift_dir == "ND"
                 r.P3_LBC = abs(Functions.p3(r.P3, -1))
-            elseif r.drift_dir == "ND"
+            elseif r.drift_dir == "PD"
                 r.P3_LBC = r.P3
             else
-                r.P3_LBC = r.P3
+                #r.P3_LBC = r.P3
                 # not the best idea below
-                #=
                 r.P3_LBC = r.P3
-                r.drift_dir = "ND"
+                r.drift_dir = "PD"
                 # adding it twice (strange I know, but it is in Rahul's paper)
                 # TODO this is bad!
                 ro = collect(r)
                 ro[end] = abs(Functions.p3(r.P3, -1))
-                ro[8] = "PD"
+                ro[8] = "ND"
                 push!(df, ro)
-                =#
             end
         end
-        println(df)
+        #println(df)
 
         #=
         rec = @from i in df begin
@@ -101,6 +99,23 @@ module Data
         =#
     end
 
+    """ the MC model interpretation of aliasing """
+    function mc_p3!(df)
+        df[:P3_MC] = -7.0 # magic number
+        df[:n] = -7 # magic number
+        for r in eachrow(df)
+            (p3, n) = Functions.p3_edot(r.P3, r.EDOT)
+            r.P3_MC = p3
+            r.n = n
+            #=
+            if r.PSRJ == "J0108+6608" # used to find best p3_prediction function
+                r.n = 1
+                r.P3_MC = abs(Functions.p3(r.P3, r.n))
+            end
+            =#
+        end
+    end
+
 
     function data()
         #df = DataFrame(PSRJ=String[], P0=Float64[], P1=Float64[], P3=Float64[], EDOT=Float64[])
@@ -109,8 +124,8 @@ module Data
         add_p3!(df)
         add_p3_modes!(df)
         lbc_p3!(df)
-        println("DFDF")
-        println(df)
+        mc_p3!(df)
+        #println(df)
 
         return df
 
