@@ -1,4 +1,6 @@
 module DriftData
+    using DataFrames, Query
+
     include("modules/data.jl")
     include("modules/plot.jl")
 
@@ -13,7 +15,15 @@ module DriftData
     end
 
     function second_table()
-        df = Data.data2()
+        df = Data.data()
+        df2 = Data.data2()
+
+        println(df)
+        println(df2)
+
+        #Plot.p3_edot_simple(df2; p3_key="P3", mod="others_raw") # old generic function
+        Plot.p3_edot_andrzej2(df, df2)
+        Plot.p3_edot_andrzej3(df, df2)
     end
 
     function main()

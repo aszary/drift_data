@@ -51,6 +51,32 @@ module Functions
 
     function p3_prediction(edot)
         return 10 ^ 19.1789 * edot ^ -0.591211 # update those numbers
+        #return 10 ^ -6.0 * edot ^ 0.18 # update those numbers
+    end
+
+
+    """ determines P3 based on P3~Edot anticorrelation """
+    function p3_edot2(p3_obs, edot)
+        p3_pre = p3_prediction2(edot)
+        n_range = -10:1:10#range(-10, 10, step=1)
+        min_ = 1e50
+        n_best = n_range[1]
+        p3_best = 1e50
+        for n in n_range
+            p3_ = abs(p3(p3_obs, n))
+            dist = abs(log10(p3_pre) - log10(p3_))
+            if dist < min_
+                min_ = dist
+                n_best = n
+                p3_best = p3_
+            end
+        end
+        return p3_best, n_best
+    end
+
+
+    function p3_prediction2(edot)
+        return 10 ^ -6.0 * edot ^ 0.18 # update those numbers
     end
 
 

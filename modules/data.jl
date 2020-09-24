@@ -33,6 +33,8 @@ module Data
         insertcols!(df, 8, :drift_dir=>rahul_dir)
     end
 
+
+
     function add_p3_modes!(df)
         psrs = ["J0034-0721", "J0034-0721", "J1555-3134", "J1727-2739", "J1822-2256", "J1921+1948", "J1921+1948", "J1946+1805", "J2305+3100"] # "J1822-2256",
         p3_rahul = [6.5, 4.0, 10.2, 5.2, 10.7, 3.8, 2.45, 6.1, 3] # 14.3,
@@ -52,7 +54,6 @@ module Data
 
     """ simple LBC interpretation of aliasing """
     function lbc_p3!(df)
-
         df[:P3_LBC] = -7.0 # magic number
         for r in eachrow(df)
             if r.drift_dir == "ND"
@@ -108,10 +109,16 @@ module Data
     function mc_p3!(df)
         df[:P3_MC] = -7.0 # magic number
         df[:n] = -7 # magic number
+        df[:P3_MC2] = -7.0 # magic number
+        df[:n2] = -7 # magic number
         for r in eachrow(df)
             (p3, n) = Functions.p3_edot(r.P3, r.EDOT)
             r.P3_MC = p3
             r.n = n
+            (p3b, n2) = Functions.p3_edot2(r.P3, r.EDOT)
+            r.P3_MC2 = p3b
+            r.n2 = n2
+
             #=
             if r.PSRJ == "J0108+6608" # used to find best p3_prediction function
                 r.n = 1
@@ -138,18 +145,6 @@ module Data
         return df
     end
 
-    function data2()
-        psrs_switching = ["J0323+3944", "J0815+0939", "J0820-4114", "J1034-3224", "J1842-0359", "J1921+2153", "J2321+6024"]
-        psrs_diffuse  = ["J0152-1637", "J0304+1932", "J0525+1115", "J0630-2834", "J0823+0159", "J0944-1354", "J0959-4809", "J1041-1942", "J1703-1846", "J1720-0212", "J1741-0840", "J1840-0840", "J2018+2839", "J2046+1540", "J2317+2149"]
-        psrs_lowmixed= ["J0624-0424", "J0837+0610", "J0846-3533", "J1239+2453", "J1328-4921", "J1625-4048", "J1650-1654", "J1700-3312", "J1703-3241", "J1733-2228", "J1740+1311", "J1801-2920", "J1900-2600", "J1912+2104", "J2006-0807", "J2048-1616"]
-
-        psrs = vcat(psrs_switching, psrs_diffuse, psrs_lowmixed)
-
-        df = get_pars(psrs, "PSRB P0 EDOT")
-        #push!(df, ["J0034-0721", -7, -7, -7, -7])
-        println(df)
-
-    end
 
     function latex_table!(df)
         # make proper strings
@@ -207,6 +202,34 @@ module Data
         la = latexify(df, env=:table, latex=false)
         println(la)
     end
+
+
+    function add_p3b!(df)
+        p3_rahul = [8.5, 16.6, 18.5, 7.2, 12.4, 4.2, 8, 5.9, 6.4, 3.2, 6.9, 4.7, 6.4, 5.6, 4.3, 3.6, 5.4, 4.6, 15.0, 4.0, 23.0, 5.2, 2.5, 2.17, 2.03, 2.8, 3.4, 61, 2.6, 2.2, 4.7, 23, 9, 2.48, 7.6, 2.7, 15.2, 3.23]
+        p3_rahul_err = [0.3, 0.3, 1.5, 0.5, 0.5, 0.2, 1.0, 1.0, 1.7, 0.5, 1.5, 0.6, 0.3, 1.3, 0.4, 0.2, 0.1, 0.6, 0.8, 0.2, 6.1, 5.2, 0.01, 0.03, 0.02, 0.1, 0.2, 30, 0.1, 0.1, 0.5, 13, 1.0, 0.08, 0.8, 0.04, 2.5, 0.03]
+        rahul_class = ["SP", "SP", "SP", "SP", "SP", "SP", "SP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "DP", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM", "LM"]
+        println(length(p3_rahul))
+        println(length(p3_rahul_err))
+        insertcols!(df, :P3=>p3_rahul)
+        insertcols!(df, :P3_err=>p3_rahul_err)
+        insertcols!(df, :Class=>rahul_class)
+    end
+
+
+    function data2()
+        psrs_switching = ["J0323+3944", "J0815+0939", "J0820-4114", "J1034-3224", "J1842-0359", "J1921+2153", "J2321+6024"]
+        psrs_diffuse  = ["J0152-1637", "J0304+1932", "J0525+1115", "J0630-2834", "J0823+0159", "J0944-1354", "J0959-4809", "J1041-1942", "J1703-1846", "J1720-0212", "J1741-0840", "J1840-0840", "J2018+2839", "J2046+1540", "J2317+2149"]
+        psrs_lowmixed= ["J0624-0424", "J0837+0610", "J0846-3533", "J1239+2453", "J1328-4921", "J1625-4048", "J1650-1654", "J1700-3312", "J1703-3241", "J1733-2228", "J1740+1311", "J1801-2920", "J1900-2600", "J1912+2104", "J2006-0807", "J2048-1616"]
+        psrs = vcat(psrs_switching, psrs_diffuse, psrs_lowmixed)
+        df = get_pars(psrs, "PSRB P0 EDOT")
+        add_p3b!(df)
+        mc_p3!(df)
+        #push!(df, ["J0034-0721", -7, -7, -7, -7])
+        #println(df)
+        return df
+    end
+
+
 
 
 end  # module Data
