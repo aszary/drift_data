@@ -2,6 +2,8 @@ module Data
     using CSV
     using DataFrames
     using Query
+    using Latexify
+    using Printf
 
     include("functions.jl")
 
@@ -58,8 +60,9 @@ module Data
             elseif r.drift_dir == "PD"
                 r.P3_LBC = r.P3
             else
-                #r.P3_LBC = r.P3
-                # not the best idea below
+                r.P3_LBC = r.P3
+                #=
+                # not the best idea below, but used for plotting!
                 r.P3_LBC = r.P3
                 r.drift_dir = "PD"
                 # adding it twice (strange I know, but it is in Rahul's paper)
@@ -68,10 +71,11 @@ module Data
                 ro[end] = abs(Functions.p3(r.P3, -1))
                 ro[8] = "ND"
                 push!(df, ro)
+                =#
             end
         end
         #println(df)
-
+        # some tests here
         #=
         rec = @from i in df begin
             @where occursin("PD", i.drift_dir)
@@ -99,6 +103,7 @@ module Data
         =#
     end
 
+
     """ the MC model interpretation of aliasing """
     function mc_p3!(df)
         df[:P3_MC] = -7.0 # magic number
@@ -125,24 +130,82 @@ module Data
         add_p3_modes!(df)
         lbc_p3!(df)
         mc_p3!(df)
+        sort!(df, [order(:PSRJ)]) # sorting
+        select!(df, Not(" "))  # removing column " "
+        #println(names(df))
         #println(df)
 
         return df
+    end
 
-
-        #=
+    function data2()
         psrs_switching = ["J0323+3944", "J0815+0939", "J0820-4114", "J1034-3224", "J1842-0359", "J1921+2153", "J2321+6024"]
-        get_pars(psrs_switching, "PSRB P0 EDOT")
-
         psrs_diffuse  = ["J0152-1637", "J0304+1932", "J0525+1115", "J0630-2834", "J0823+0159", "J0944-1354", "J0959-4809", "J1041-1942", "J1703-1846", "J1720-0212", "J1741-0840", "J1840-0840", "J2018+2839", "J2046+1540", "J2317+2149"]
-        get_pars(psrs_diffuse, "PSRB P0 EDOT")
-
         psrs_lowmixed= ["J0624-0424", "J0837+0610", "J0846-3533", "J1239+2453", "J1328-4921", "J1625-4048", "J1650-1654", "J1700-3312", "J1703-3241", "J1733-2228", "J1740+1311", "J1801-2920", "J1900-2600", "J1912+2104", "J2006-0807", "J2048-1616"]
-        get_pars(psrs_lowmixed, "PSRB P0 EDOT")
-        =#
-        #push!(df, ["J0034-0721", -7, -7, -7, -7])
-        #println(df)
 
+        psrs = vcat(psrs_switching, psrs_diffuse, psrs_lowmixed)
+
+        df = get_pars(psrs, "PSRB P0 EDOT")
+        #push!(df, ["J0034-0721", -7, -7, -7, -7])
+        println(df)
+
+    end
+
+    function latex_table!(df)
+        # make proper strings
+        df[:P0] = [@sprintf("%.3f", p0) for p0 in df[:P0]]
+        df[:EDOT] = [@sprintf("%.1f", ed/1e30) for ed in df[:EDOT]]
+        df[!, :Number] =  ["" for i in axes(df, 1)]
+        df[!, :P3_STR] =  ["" for i in axes(df, 1)]
+
+        # P3 with errors
+        for r in eachrow(df)
+            r.P3_STR = "\$ $(r.P3) \\pm $(r.P3_err) \$" #@sprintf("\$%.3f \\pm %.3f\$", r.P3, r.P3_err)
+            r.P3_LBC = parse(Float64, @sprintf("%.7f", r.P3_LBC)[1:length("$(r.P3)")]) # you need a break Who writes like that?
+            r.P3_MC = parse(Float64, @sprintf("%.7f", r.P3_MC)[1:length("$(r.P3)")]) # you need a break Who writes like that?
+        end
+
+        #reorder
+        permutecols!(df, [:Number, :PSRJ, :PSRB, :P0, :EDOT, :P3_STR, :drift_dir, :P3_LBC, :n, :P3_MC])
+
+        # cleaning
+        num = 1
+        for (i,r) in enumerate(eachrow(df))
+            if i == 1
+                r.Number = "$num"
+                num += 1
+            else
+                #println(df[:PSRJ][i-1])
+                #println(r.PSRJ)
+                if (df[:PSRJ][i-1] == r.PSRJ)
+                    r.PSRJ = ""
+                    r.PSRB = ""
+                    r.P0 = ""
+                    r.EDOT = ""
+                    r.drift_dir = ""
+                elseif ((df[:PSRJ][i-1] == "") && (df[:PSRJ][i-2] == r.PSRJ))  # three modes tops
+                    r.PSRJ = ""
+                    r.PSRB = ""
+                    r.P0 = ""
+                    r.EDOT = ""
+                    r.drift_dir = ""
+                else
+                    r.Number = "$num"
+                    num += 1
+                end
+            end
+        end
+        # change column names
+        rename!(df, :P0=>"\$P\$")
+        rename!(df, :P3_STR=>"\$P_3\$")
+        rename!(df, :P3_LBC=>"\$P_3^{\\rm LBC }\$")
+        rename!(df, :P3_MC=>"\$P_3^{\\rm MC }\$")
+        rename!(df, :EDOT=>"\$\\dot{E}\$")
+        rename!(df, :drift_dir=>"Type")
+
+        println(df)
+        la = latexify(df, env=:table, latex=false)
+        println(la)
     end
 
 
