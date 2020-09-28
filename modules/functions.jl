@@ -30,7 +30,7 @@ module Functions
     """ determines P3 based on P3~Edot anticorrelation """
     function p3_edot(p3_obs, edot)
         p3_pre = p3_prediction(edot)
-        n_range = -10:1:10#range(-10, 10, step=1)
+        n_range = -20:1:20#range(-10, 10, step=1)
         min_ = 1e50
         n_best = n_range[1]
         p3_best = 1e50
@@ -58,7 +58,7 @@ module Functions
     """ determines P3 based on P3~Edot anticorrelation """
     function p3_edot2(p3_obs, edot)
         p3_pre = p3_prediction2(edot)
-        n_range = -10:1:10#range(-10, 10, step=1)
+        n_range = -70:1:70#range(-10, 10, step=1)
         min_ = 1e50
         n_best = n_range[1]
         p3_best = 1e50
@@ -76,7 +76,11 @@ module Functions
 
 
     function p3_prediction2(edot)
-        return 10 ^ -6.0 * edot ^ 0.18 # update those numbers
+        #return 10 ^ -6.0 * edot ^ 0.18
+        #return 10 ^ -13.0 * edot ^ 0.4
+        return 10 ^ -16.0 * edot ^ 0.5
+        #return 10 ^ -22.0 * edot ^ 0.7
+        #return 10 ^ -23.0 * edot ^ 0.7
     end
 
 
