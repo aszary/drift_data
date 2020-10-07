@@ -1,5 +1,6 @@
 module Functions
 
+    using Statistics
     using DataFrames, GLM
 
 
@@ -27,6 +28,8 @@ module Functions
         return p3
     end
 
+
+
     """ determines P3 based on P3~Edot anticorrelation """
     function p3_edot(p3_obs, edot)
         p3_pre = p3_prediction(edot)
@@ -50,8 +53,38 @@ module Functions
 
 
     function p3_prediction(edot)
-        return 10 ^ 19.1789 * edot ^ -0.591211 # update those numbers
-        #return 10 ^ -6.0 * edot ^ 0.18 # update those numbers
+        return 10 ^ 19.0414 * edot ^ -0.58647 # update those numbers
+        #return 10 ^ 19.1789 * edot ^ -0.591211 # update those numbers
+        #return 10 ^ 12.6468 * edot ^ -0.385241 # the whole sample
+    end
+
+
+    """ determines P3 based on P3~Edot correlation """
+    function p3_edot(p3_obs, edot, a, b)
+        p3_pre = p3_prediction(edot, a, b)
+        n_range = -20:1:20#range(-10, 10, step=1)
+        min_ = 1e50
+        n_best = n_range[1]
+        p3_best = 1e50
+        for n in n_range
+            p3_ = abs(p3(p3_obs, n))
+            dist = abs(log10(p3_pre) - log10(p3_))
+            if dist < min_
+                min_ = dist
+                n_best = n
+                p3_best = p3_
+            end
+        end
+        return p3_best, n_best
+    end
+
+    function p3_prediction(edot, a, b)
+        return 10 ^ a * edot ^ b
+    end
+
+
+    function p3_prediction_rahul(edot)
+        return 10 ^ 16.1955 * edot ^ -0.496491
     end
 
 
@@ -98,6 +131,20 @@ module Functions
         f(x) = 10^co[1] * x^co[2]
         p3s = f.(edots)
         return co, [edots, p3s]
+    end
+
+
+    function squared_error(ydata, yfit)
+        return sum((yfit .- ydata) .* (yfit .- ydata))
+    end
+
+
+    """ https://pythonprogramming.net/how-to-program-r-squared-machine-learning-tutorial/ """
+    function rsquared(ydata, yfit)
+        mean_line = [mean(ydata) for y in ydata]
+        squared_error_fit = squared_error(ydata, yfit)
+        squared_error_mean = squared_error(ydata, mean_line)
+        return 1 - (squared_error_fit / squared_error_mean)
     end
 
 

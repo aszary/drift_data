@@ -189,6 +189,10 @@ module Plot
         (co1, (edots1, p3s1)) = Functions.fit_line_log10(collect(q1[:EDOT]), collect(q1[:P3_LBC]))
         (co2, (edots2, p3s2)) = Functions.fit_line_log10(collect(q2[:EDOT]), collect(q2[:P3_LBC]); show_=true)
 
+        # R-squared calculation
+        yfit = Functions.p3_prediction_rahul.(x)
+        println("R-squared: ", Functions.rsquared(y, yfit))
+
         ms = 10
 
         rc("font", size=8.)
@@ -232,12 +236,12 @@ module Plot
         end
 
         q3 = @from i in df begin
-            @where (i.n != 0)
+            @where (i.n_b != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
 
-        println(df)
+        #println(df)
         #println(q1)
         #println(q2)
 
@@ -246,6 +250,11 @@ module Plot
         (co, (edots, p3s)) = Functions.fit_line_log10(x, y; show_=true)
         (co1, (edots1, p3s1)) = Functions.fit_line_log10(collect(q1[:EDOT]), collect(q1[:P3_MC]))
         (co2, (edots2, p3s2)) = Functions.fit_line_log10(collect(q2[:EDOT]), collect(q2[:P3_MC]); show_=true)
+
+        # R-squared calculation
+        yfit = Functions.p3_prediction.(x)
+        println("R-squared: ", Functions.rsquared(y, yfit))
+
         ms = 10
 
         rc("font", size=8.)
@@ -293,13 +302,13 @@ module Plot
         end
 
         q3 = @from i in df begin
-            @where (i.n != 0)
+            @where (i.n_b != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
 
         q4 = @from i in df2 begin
-            @where (i.n != 0)
+            @where (i.n_b != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
@@ -348,7 +357,7 @@ module Plot
 
 
 
-    function p3_edot_andrzej2(df, df2;)
+    function p3_edot_andrzej2(df, df2, a, b)
 
         q1 = @from i in df begin
             @where i.drift_dir == "PD"
@@ -363,13 +372,13 @@ module Plot
         end
 
         q3 = @from i in df begin
-            @where (i.n != 0)
+            @where (i.n_b != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
 
         q4 = @from i in df2 begin
-            @where (i.n != 0)
+            @where (i.n_b != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
@@ -379,11 +388,19 @@ module Plot
         #println(q2)
 
         x = vcat(collect(df[:EDOT]), collect(df2[:EDOT]))
-        y = vcat(collect(df[:P3_MC]), collect(df2[:P3_MC]))
+        y = vcat(collect(df[:P3_MC3]), collect(df2[:P3_MC3]))
         (co, (edots, p3s)) = Functions.fit_line_log10(x, y; show_=true)
-        (co1, (edots1, p3s1)) = Functions.fit_line_log10(collect(q1[:EDOT]), collect(q1[:P3_MC]); show_=true)
-        (co2, (edots2, p3s2)) = Functions.fit_line_log10(collect(q2[:EDOT]), collect(q2[:P3_MC]); show_=true)
-        (co3, (edots3, p3s3)) = Functions.fit_line_log10(collect(df2[:EDOT]), collect(df2[:P3_MC]); show_=true)
+        (co1, (edots1, p3s1)) = Functions.fit_line_log10(collect(q1[:EDOT]), collect(q1[:P3_MC3]); show_=true)
+        (co2, (edots2, p3s2)) = Functions.fit_line_log10(collect(q2[:EDOT]), collect(q2[:P3_MC3]); show_=true)
+        (co3, (edots3, p3s3)) = Functions.fit_line_log10(collect(df2[:EDOT]), collect(df2[:P3_MC3]); show_=true)
+
+        # R-squared calculation
+        yfit = Functions.p3_prediction.(x, co[1], co[2])
+        println("R-squared: ", Functions.rsquared(y, yfit))
+
+        edots_line = 10 .^ (range(29.7; stop=33, length=100))
+        p3_line = Functions.p3_prediction.(edots_line, a, b)
+
         ms = 10
 
         rc("font", size=8.)
@@ -392,15 +409,16 @@ module Plot
 
         figure(figsize=(3.14961, 1.9465685427418518), frameon=true)  # 8cm x  golden ratio
         subplots_adjust(left=0.17, bottom=0.22, right=0.99, top=0.99, wspace=0., hspace=0.)
-        scatter(q1[:EDOT], q1[:P3_MC], label="PD", marker="s", s=ms, c="C0")
-        scatter(q2[:EDOT], q2[:P3_MC], label="ND", s=ms, c="C1")
-        scatter(q3[:EDOT], q3[:P3_MC], label="aliased", s=ms, marker="+", c="grey")
-        scatter(df2[:EDOT], df2[:P3_MC], label="SP, DP, LM", marker="D", s=ms, c="C2", alpha=0.4, ec="none")
-        scatter(q4[:EDOT], q4[:P3_MC], s=ms, marker="+", c="grey")
+        scatter(q1[:EDOT], q1[:P3_MC3], label="PD", marker="s", s=ms, c="C0")
+        scatter(q2[:EDOT], q2[:P3_MC3], label="ND", s=ms, c="C1")
+        scatter(df2[:EDOT], df2[:P3_MC3], label="SP, DP, LM", marker="D", s=ms, c="C2", alpha=0.4, ec="none")
+        scatter(q3[:EDOT], q3[:P3_MC3], label="aliased", s=ms, marker="+", c="grey")
+        scatter(q4[:EDOT], q4[:P3_MC3], s=ms, marker="+", c="grey")
         plot(edots, p3s, c="black")
         plot(edots3, p3s3, c="C2", ls="--")
         plot(edots1, p3s1, c="C0", ls="--")
         plot(edots2, p3s2, c="C1", ls=":")
+        #plot(edots_line, p3_line, c="red", lw=2, alpha=0.5)
         #=
         for i in 1:length(df2[:EDOT])
             text(df2[:EDOT][i], df2[:P3_MC][i], df2[:PSRJ][i], size=3)
@@ -432,13 +450,13 @@ module Plot
         end
 
         q3 = @from i in df begin
-            @where (i.n2 != 0)
+            @where (i.n_c != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
 
         q4 = @from i in df2 begin
-            @where (i.n2 != 0)
+            @where (i.n_c != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
@@ -453,6 +471,11 @@ module Plot
         (co1, (edots1, p3s1)) = Functions.fit_line_log10(collect(q1[:EDOT]), collect(q1[:P3_MC2]); show_=true)
         (co2, (edots2, p3s2)) = Functions.fit_line_log10(collect(q2[:EDOT]), collect(q2[:P3_MC2]); show_=true)
         (co3, (edots3, p3s3)) = Functions.fit_line_log10(collect(df2[:EDOT]), collect(df2[:P3_MC2]); show_=true)
+
+        # R-squared calculation
+        yfit = Functions.p3_prediction2.(x) #, 15.2106, -0.465722)
+        println("R-squared: ", Functions.rsquared(y, yfit))
+
         ms = 10
 
         rc("font", size=8.)
@@ -463,8 +486,8 @@ module Plot
         subplots_adjust(left=0.25, bottom=0.22, right=0.99, top=0.99, wspace=0., hspace=0.)
         scatter(q1[:EDOT], q1[:P3_MC2], label="PD", marker="s", s=ms, c="C0")
         scatter(q2[:EDOT], q2[:P3_MC2], label="ND", s=ms, c="C1")
-        scatter(q3[:EDOT], q3[:P3_MC2], label="aliased", s=ms, marker="+", c="grey")
         scatter(df2[:EDOT], df2[:P3_MC2], label="SP, DP, LM", marker="D", s=ms, c="C2", alpha=0.4, ec="none")
+        scatter(q3[:EDOT], q3[:P3_MC2], label="aliased", s=ms, marker="+", c="grey")
         scatter(q4[:EDOT], q4[:P3_MC2], s=ms, marker="+", c="grey")
         plot(edots, p3s, c="black")
         plot(edots3, p3s3, c="C2", ls="--")
@@ -501,13 +524,13 @@ module Plot
         end
 
         q3 = @from i in df begin
-            @where (i.n2 != 0)
+            @where (i.n_c != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
 
         q4 = @from i in df2 begin
-            @where (i.n2 != 0)
+            @where (i.n_c != 0)
             @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
             @collect DataFrame
         end
@@ -559,6 +582,87 @@ module Plot
         savefig("outdir/p3_edot_andrzej4.pdf")
         close()
     end
+
+
+    function p3_edot_andrzej5(df, df2, a, b)
+
+        q1 = @from i in df begin
+            @where i.drift_dir == "PD"
+            @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
+            @collect DataFrame
+        end
+
+        q2 = @from i in df begin
+            @where (i.drift_dir == "ND") && i.PSRJ != "J0421-0345 ignore"
+            @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
+            @collect DataFrame
+        end
+
+        q3 = @from i in df begin
+            @where (i.n_d != 0)
+            @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
+            @collect DataFrame
+        end
+
+        q4 = @from i in df2 begin
+            @where (i.n_d != 0)
+            @select i # {i.P3, i.EDOT, i.PSRJ, i.drift_dir}
+            @collect DataFrame
+        end
+
+        #println(df)
+        #println(q1)
+        #println(q2)
+
+        x = vcat(collect(df[:EDOT]), collect(df2[:EDOT]))
+        y = vcat(collect(df[:P3_MC3]), collect(df2[:P3_MC3]))
+        (co, (edots, p3s)) = Functions.fit_line_log10(x, y; show_=true)
+        (co1, (edots1, p3s1)) = Functions.fit_line_log10(collect(q1[:EDOT]), collect(q1[:P3_MC3]); show_=true)
+        (co2, (edots2, p3s2)) = Functions.fit_line_log10(collect(q2[:EDOT]), collect(q2[:P3_MC3]); show_=true)
+        (co3, (edots3, p3s3)) = Functions.fit_line_log10(collect(df2[:EDOT]), collect(df2[:P3_MC3]); show_=true)
+
+        # R-squared calculation
+        yfit = Functions.p3_prediction.(x, co[1], co[2]) # check the best fit
+        println("R-squared: ", Functions.rsquared(y, yfit))
+
+        edots_line = 10 .^ (range(29.7; stop=33, length=100))
+        p3_line = Functions.p3_prediction.(edots_line, a, b)
+
+        ms = 10
+
+        rc("font", size=8.)
+        rc("axes", linewidth=0.5)
+        rc("lines", linewidth=0.5)
+
+        figure(figsize=(3.14961, 1.9465685427418518), frameon=true)  # 8cm x  golden ratio
+        #subplots_adjust(left=0.17, bottom=0.22, right=0.99, top=0.99, wspace=0., hspace=0.)
+        subplots_adjust(left=0.19, bottom=0.22, right=0.99, top=0.99, wspace=0., hspace=0.)
+        scatter(q1[:EDOT], q1[:P3_MC3], label="PD", marker="s", s=ms, c="C0")
+        scatter(q2[:EDOT], q2[:P3_MC3], label="ND", s=ms, c="C1")
+        scatter(df2[:EDOT], df2[:P3_MC3], label="SP, DP, LM", marker="D", s=ms, c="C2", alpha=0.4, ec="none")
+        scatter(q3[:EDOT], q3[:P3_MC3], label="aliased", s=ms, marker="+", c="grey")
+        scatter(q4[:EDOT], q4[:P3_MC3], s=ms, marker="+", c="grey")
+        plot(edots, p3s, c="black")
+        plot(edots3, p3s3, c="C2", ls="--")
+        plot(edots1, p3s1, c="C0", ls="--")
+        plot(edots2, p3s2, c="C1", ls=":")
+        plot(edots_line, p3_line, c="red", lw=2, alpha=0.5)
+        #=
+        for i in 1:length(df2[:EDOT])
+            text(df2[:EDOT][i], df2[:P3_MC][i], df2[:PSRJ][i], size=3)
+        end
+        =#
+        loglog()
+        legend(fontsize=5)
+        #yticks([1, 10], [1, 10])
+        #ylim(0.5, 30)
+        xlabel("\$\\dot{E}\$ (ergs/s)")
+        ylabel("\$P_3\$ (in units \$P\$)")
+        savefig("outdir/p3_edot_andrzej5.pdf")
+        close()
+    end
+
+
 
 
 end  # module Plot
