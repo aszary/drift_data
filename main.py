@@ -13,6 +13,7 @@ def latex_test():
 def latex_test2():
     d = da.high_edot2("data/stats.csv")
     da.latexify(d)
+    d.show_in_browser(jsviewer=True)
 
 def plot_edot():
     d = da.all_drifting()
@@ -21,8 +22,8 @@ def plot_edot():
 def main():
     #test()
     #latex_test()
-    #latex_test2()
-    plot_edot()
+    latex_test2()
+    #plot_edot()
     print("Bye")
 
 if __name__ == "__main__":

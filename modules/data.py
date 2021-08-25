@@ -57,6 +57,14 @@ def read_highedot(filename):
 
 
 def high_edot2(filename):
+    """
+    st0 = Table.read(filename, format='ascii', header_start=0, data_start=1) # read in the table
+    a = list(st0.colnames)
+    b = list(st0[0])
+    for i in range(len(a)):
+        print('"',a[i],'" :: ', b[i])
+    return
+    """
     st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
     ce = st[st['Census']=='YES'] # select the census observation only
     ce.rename_column("Edot [ergs/s]", r"$\dot E$")
@@ -75,7 +83,11 @@ def high_edot2(filename):
             except ValueError:
                 print("Error for ", "MP_C{}_F{}".format(i, j), "keyword")
     ce = vstack(ces)
-    res = ce["PSRJ", "PSRB", r"$\dot E$"]
+    #print(ce.info)
+    ce["C2 Power"][ce["C2 Power"]=="???"] = "$--$"  # changes value in table
+    ce["C3 Power"][ce["C3 Power"]=="???"] = "$--$"  # changes value in table
+    ce["C4 Power"][ce["C4 Power"]=="???"] = "$--$"  # changes value in table
+    res = ce["PSRJ", "PSRB", r"$\dot E$", "SNR", "C1 Power", "C2 Power", "C3 Power", "C4 Power"]
     res = res[res[r"$\dot E$"] > 5e32]
     return res
 
