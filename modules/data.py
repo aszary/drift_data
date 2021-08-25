@@ -56,8 +56,8 @@ def read_highedot(filename):
     return res
 
 
-def read_highedot2(filename):
-    st = Table.read(filename, format='ascii', header_start=0, data_start=2) #read in the table
+def high_edot2(filename):
+    st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
     ce = st[st['Census']=='YES'] # select the census observation only
     ce.rename_column("Edot [ergs/s]", r"$\dot E$")
     ce.rename_column("JName_paper", "PSRJ")
@@ -78,3 +78,19 @@ def read_highedot2(filename):
     res = ce["PSRJ", "PSRB", r"$\dot E$"]
     res = res[res[r"$\dot E$"] > 5e32]
     return res
+
+
+def all_drifting(filename="data/stats.csv"):
+    st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
+    ce = st[st['Census']=='YES'] # select the census observation only
+    # drifting only # checking all features for MP no IP included
+    ces = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            try:
+                mask = ce["MP_C{}_F{}".format(i+1, j+1)] == "drift"
+                ces.append(ce[mask])
+            except ValueError:
+                print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
+    ce = vstack(ces)
+    return ce
