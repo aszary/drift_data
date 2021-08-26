@@ -84,10 +84,23 @@ def high_edot2(filename):
                 print("Error for ", "MP_C{}_F{}".format(i, j), "keyword")
     ce = vstack(ces)
     #print(ce.info)
+    # create latex columns
+    c1 = ce["C1 Power"]
+    c1err = ce["C1 PowerErr"]
+    rec1 = ["${:.1f} \\pm {:.1f}$".format(float(c1[i]), float(c1err[i])) for i in range(len(c1))]
+    ce["C1 Power-Latex"] = rec1
+
+    c1 = ce["MP C1 F1: P3_value"]
+    c1err = ce["MP C1 F1: P3_error"]
+    rec1 = ["${:.1f} \\pm {:.1f}$".format(float(c1[i]), float(c1err[i])) for i in range(len(c1))]
+    ce["$P_3$"] = rec1
+    ce["P_3"] = c1
+
     ce["C2 Power"][ce["C2 Power"]=="???"] = "$--$"  # changes value in table
     ce["C3 Power"][ce["C3 Power"]=="???"] = "$--$"  # changes value in table
     ce["C4 Power"][ce["C4 Power"]=="???"] = "$--$"  # changes value in table
-    res = ce["PSRJ", "PSRB", r"$\dot E$", "SNR", "C1 Power", "C2 Power", "C3 Power", "C4 Power"]
+
+    res = ce["PSRJ", "PSRB", r"$\dot E$", "P_3", "$P_3$", "SNR", "C1 Power", "C1 Power-Latex", "C2 Power", "C3 Power", "C4 Power"]
     res = res[res[r"$\dot E$"] > 5e32]
     return res
 
