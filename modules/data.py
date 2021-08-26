@@ -105,7 +105,7 @@ def high_edot2(filename):
     return res
 
 
-def all_drifting(filename="data/stats.csv"):
+def all_drifting_p3only(filename="data/stats.csv"):
     st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
     ce = st[st['Census']=='YES'] # select the census observation only
     # drifting only # checking all features for MP no IP included
@@ -117,5 +117,15 @@ def all_drifting(filename="data/stats.csv"):
                 ces.append(ce[mask])
             except ValueError:
                 print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
-    ce = vstack(ces)
-    return ce
+    drifting = vstack(ces)
+    # P3only # checking all features for MP no IP included
+    ces2 = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            try:
+                mask = ce["MP_C{}_F{}".format(i+1, j+1)] == "P3only"
+                ces2.append(ce[mask])
+            except ValueError:
+                print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
+    p3only = vstack(ces2)
+    return drifting, p3only

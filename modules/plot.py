@@ -12,14 +12,14 @@ def test_plot(data):
     pl.show()
 
 
-def p3_edot(da):
+def p3_edot(da1, da2):
     #print(da.info)
-    da["Edot [ergs/s]"] = da["Edot [ergs/s]"].astype(float)
+    da1["Edot [ergs/s]"] = da1["Edot [ergs/s]"].astype(float)
+    da2["Edot [ergs/s]"] = da2["Edot [ergs/s]"].astype(float)
 
     p3s = []
     ep3s = []
     edots = []
-
     # all main components / features
     for i in range(0,2):
         p3s.append([])
@@ -27,25 +27,53 @@ def p3_edot(da):
         edots.append([])
         for j in range(0, 5):
             # get valid P3 value
-            da_tmp = da[da["MP C{} F{}: P3_value".format(i+1, j+1)]>0.0] # has a proper P3
+            da_tmp = da1[da1["MP C{} F{}: P3_value".format(i+1, j+1)]>0.0] # has a proper P3
             p3s[i].append(da_tmp["MP C{} F{}: P3_value".format(i+1, j+1)])
             ep3s[i].append(da_tmp["MP C{} F{}: P3_error".format(i+1, j+1)])
             edots[i].append(da_tmp["Edot [ergs/s]"])
 
 
-    pl.figure()
+    p3s2 = []
+    ep3s2 = []
+    edots2 = []
+    # all main components / features
+    for i in range(0,2):
+        p3s2.append([])
+        ep3s2.append([])
+        edots2.append([])
+        for j in range(0, 5):
+            # get valid P3 value
+            da_tmp = da2[da2["MP C{} F{}: P3_value".format(i+1, j+1)]>0.0] # has a proper P3
+            p3s2[i].append(da_tmp["MP C{} F{}: P3_value".format(i+1, j+1)])
+            ep3s2[i].append(da_tmp["MP C{} F{}: P3_error".format(i+1, j+1)])
+            edots2[i].append(da_tmp["Edot [ergs/s]"])
+
+
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
     """
     # all components / features
     for i in range(0,2):
         for j in range(0, 5):
             pl.scatter(edots[i][j], p3s[i][j], color="C{}".format(1+i+j))
     """
-    pl.scatter(edots[0][0], p3s[0][0], color="tab:red")
-    pl.errorbar(edots[0][0], p3s[0][0], fmt='none', yerr=np.array(ep3s[0][0]), color="tab:red")
+    pl.scatter(edots[0][0], p3s[0][0], color="tab:blue", label="drift", s=5, zorder=1)
+    pl.errorbar(edots[0][0], p3s[0][0], fmt='none', yerr=np.array(ep3s[0][0]), color="tab:blue", zorder=2)
+
+    pl.scatter(edots2[0][0], p3s2[0][0], color="tab:red", label="P3only", s=5, zorder=3)
+    pl.errorbar(edots2[0][0], p3s2[0][0], fmt='none', yerr=np.array(ep3s2[0][0]), color="tab:red", zorder=4)
     #pl.scatter(edots[1][0], p3s[1][0], color="tab:blue")
     #pl.errorbar(edots[1][0], p3s[1][0], fmt='none', yerr=np.array(ep3s[1][0]), color="tab:blue")
+    pl.legend()
     pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([1, yl[1]])
     pl.xlabel("$\dot{E}$ (ergs/s)")
     pl.ylabel(r"$P_3$ in $P$")
     pl.savefig("output/p3_edot.pdf")
-    pl.show()
+    #pl.show()

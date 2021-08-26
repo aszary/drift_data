@@ -19,15 +19,15 @@ def latex_test2():
 
 
 def plot_edot():
-    d = da.all_drifting()
-    pl.p3_edot(d)
+    d1, d2 = da.all_drifting_p3only()
+    pl.p3_edot(d1, d2)
 
 
 def main():
     #test()
     #latex_test()
-    latex_test2()
-    #plot_edot()
+    #latex_test2()
+    plot_edot()
     print("Bye")
 
 
