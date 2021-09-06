@@ -23,11 +23,17 @@ def plot_edot():
     pl.p3_edot(d1, d2)
 
 
+def plot_edot2():
+    d1, d2, d3 = da.positive_negative_mixed()
+    pl.p3_edot2([d1, d2, d3], ["positive", "negative", "mixed"])
+
+
 def main():
     #test()
     #latex_test()
     #latex_test2()
-    plot_edot()
+    #plot_edot()
+    plot_edot2()
     print("Bye")
 
 

@@ -1,5 +1,5 @@
 from astropy.io import ascii
-from astropy.table import Table, vstack
+from astropy.table import Table, vstack, setdiff
 import pandas as pd
 
 
@@ -128,4 +128,59 @@ def all_drifting_p3only(filename="data/stats.csv"):
             except ValueError:
                 print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
     p3only = vstack(ces2)
+
+    drifting["Edot [ergs/s]"] = drifting["Edot [ergs/s]"].astype(float)
+    p3only["Edot [ergs/s]"] = p3only["Edot [ergs/s]"].astype(float)
+
     return drifting, p3only
+
+
+def positive_negative_mixed(filename="data/stats.csv"):
+    st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
+    ce = st[st['Census']=='YES'] # select the census observation only
+
+    # drifting only # checking all features for MP no IP included
+    ces = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            try:
+                mask = ce["MP_C{}_F{}".format(i+1, j+1)] == "drift"
+                ces.append(ce[mask])
+            except ValueError:
+                print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
+    dr = vstack(ces)
+
+    # checking P2 / positive, negative, mixed
+    pos = []
+    neg = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            #print("{} {} {}".format(i, j, dr["MP C{} F{}: P2_value".format(i+1, j+1)]))
+            try:
+                mask1 = ce["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
+                pos.append(ce[mask1])
+                mask2 = ce["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
+                neg.append(ce[mask2])
+            except ValueError:
+                print("Error for ", "MP C{} F{}: P2_value".format(i+1, j+1), "keyword...")
+    positive = vstack(pos)
+    negative = vstack(neg)
+
+    mix = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            mask1 = negative["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
+            mask2 = positive["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
+            mix.append(positive[mask2]) # TODO remove from positive
+            mix.append(negative[mask1]) # TODO remove from negative
+
+    mixed = vstack(mix)
+
+    positive["Edot [ergs/s]"] = positive["Edot [ergs/s]"].astype(float)
+    negative["Edot [ergs/s]"] = negative["Edot [ergs/s]"].astype(float)
+    mixed["Edot [ergs/s]"] = mixed["Edot [ergs/s]"].astype(float)
+
+    #print(positive.info())
+    #print(list(negative["JName_paper"]))
+
+    return positive, negative, mixed
