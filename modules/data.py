@@ -176,6 +176,8 @@ def positive_negative_mixed(filename="data/stats.csv"):
                 print("Error for ", "MP C{} F{}: P2_value".format(i+1, j+1), "keyword...")
     positive = vstack(pos)
     negative = vstack(neg)
+    print(len(positive))
+
 
     mix = []
     for i in range(0, 2):
@@ -188,6 +190,7 @@ def positive_negative_mixed(filename="data/stats.csv"):
             positive = positive[~mask2]
             negative = negative[~mask1]
 
+    print(len(positive))
     mixed = vstack(mix)
 
     positive["Edot [ergs/s]"] = positive["Edot [ergs/s]"].astype(float)

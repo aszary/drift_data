@@ -37,8 +37,8 @@ def main():
     #test()
     #latex_test()
     #latex_test2()
-    plot_edot()
-    #plot_edot2()
+    #plot_edot()
+    plot_edot2()
     #plot_p()
     print("Bye")
 
