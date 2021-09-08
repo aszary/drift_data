@@ -19,7 +19,7 @@ def latex_test2():
 
 
 def plot_edot():
-    d1, d2 = da.all_drifting_p3only()
+    d1, d2 = da.drifting_p3only()
     pl.p3_edot(d1, d2)
 
 
@@ -28,12 +28,18 @@ def plot_edot2():
     pl.p3_edot2([d1, d2, d3], ["positive", "negative", "mixed"])
 
 
+def plot_p():
+    d1, d2 = da.drifting_p3only()
+    pl.p3_p([d1, d2], ["drifting", "P3only"])
+
+
 def main():
     #test()
     #latex_test()
     #latex_test2()
-    #plot_edot()
-    plot_edot2()
+    plot_edot()
+    #plot_edot2()
+    #plot_p()
     print("Bye")
 
 

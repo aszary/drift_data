@@ -71,8 +71,31 @@ def p3_edot(da1, da2):
     pl.ylim([1, yl[1]])
     pl.xlabel("$\dot{E}$ (ergs/s)")
     pl.ylabel(r"$P_3$ in $P$")
+    print("output/p3_edot.pdf")
     pl.savefig("output/p3_edot.pdf")
     #pl.show()
+
+
+
+def get_p3s_ps(da):
+
+    p3s = []
+    ep3s = []
+    ps = []
+
+    # all main components / features
+    for i in range(0,2):
+        p3s.append([])
+        ep3s.append([])
+        ps.append([])
+        for j in range(0, 5):
+            # get valid P3 value
+            da_tmp = da[da["MP C{} F{}: P3_value".format(i+1, j+1)] > 0.0] # has a proper P3
+            p3s[i].append(da_tmp["MP C{} F{}: P3_value".format(i+1, j+1)])
+            ep3s[i].append(da_tmp["MP C{} F{}: P3_error".format(i+1, j+1)])
+            ps[i].append(da_tmp["Period [s]"])
+    return p3s, ep3s, ps
+
 
 
 def get_p3s_edots(da):
@@ -126,5 +149,45 @@ def p3_edot2(datas, labels):
     pl.ylim([1, yl[1]])
     pl.xlabel("$\dot{E}$ (ergs/s)")
     pl.ylabel(r"$P_3$ in $P$")
+    print("output/p3_edot2.pdf")
     pl.savefig("output/p3_edot2.pdf")
+    #pl.show()
+
+
+def p3_p(datas, labels):
+    #print(da.info)
+
+    p3s = []
+    ep3s = []
+    ps = []
+
+    for da in datas:
+        p3_, ep3_, p_ = get_p3s_ps(da)
+        p3s.append(p3_)
+        ep3s.append(ep3_)
+        ps.append(p_)
+
+    #print(ps[1])
+    #return
+    sets = len(datas)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    for i in range(sets):
+        # first component and feature only
+        pl.scatter(ps[i][0][0], p3s[i][0][0], color="C{}".format(i+1), label=labels[i], s=5, zorder=1)
+        pl.errorbar(ps[i][0][0], p3s[i][0][0], fmt='none', yerr=np.array(ep3s[i][0][0]), color="C{}".format(i+1), zorder=2)
+    pl.legend()
+    #pl.semilogx()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([1, yl[1]])
+    pl.xlabel("$P$ (s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    print("output/p3_p.pdf")
+    pl.savefig("output/p3_p.pdf")
     #pl.show()

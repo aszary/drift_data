@@ -105,7 +105,7 @@ def high_edot2(filename):
     return res
 
 
-def all_drifting_p3only(filename="data/stats.csv"):
+def drifting_p3only(filename="data/stats.csv"):
     st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
     ce = st[st['Census']=='YES'] # select the census observation only
     # drifting only # checking all features for MP no IP included
@@ -128,6 +128,17 @@ def all_drifting_p3only(filename="data/stats.csv"):
             except ValueError:
                 print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
     p3only = vstack(ces2)
+
+    # unique drifting only
+    for i in range(0, 2):
+        for j in range(0, 5):
+            try:
+                mask = drifting["MP_C{}_F{}".format(i+1, j+1)] == "P3only"
+                drifting = drifting[~mask]
+                mask2 = p3only["MP_C{}_F{}".format(i+1, j+1)] == "drift"
+                p3only = p3only[~mask2]
+            except ValueError:
+                print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
 
     drifting["Edot [ergs/s]"] = drifting["Edot [ergs/s]"].astype(float)
     p3only["Edot [ergs/s]"] = p3only["Edot [ergs/s]"].astype(float)
@@ -171,8 +182,12 @@ def positive_negative_mixed(filename="data/stats.csv"):
         for j in range(0, 5):
             mask1 = negative["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
             mask2 = positive["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
+            #print(positive[mask2])
             mix.append(positive[mask2]) # TODO remove from positive
             mix.append(negative[mask1]) # TODO remove from negative
+            positive = positive[~mask2]
+            #print(positive)
+            #return
 
     mixed = vstack(mix)
 
