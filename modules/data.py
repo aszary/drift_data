@@ -183,11 +183,10 @@ def positive_negative_mixed(filename="data/stats.csv"):
             mask1 = negative["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
             mask2 = positive["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
             #print(positive[mask2])
-            mix.append(positive[mask2]) # TODO remove from positive
-            mix.append(negative[mask1]) # TODO remove from negative
+            mix.append(positive[mask2])
+            mix.append(negative[mask1])
             positive = positive[~mask2]
-            #print(positive)
-            #return
+            negative = negative[~mask1]
 
     mixed = vstack(mix)
 
