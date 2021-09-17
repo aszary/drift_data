@@ -118,8 +118,74 @@ def get_p3s_edots(da):
     return p3s, ep3s, edots
 
 
+def get_p3s_edots_driftpowers(da):
+
+    p3s = []
+    ep3s = []
+    edots = []
+    dps = []
+
+    # all main components / features
+    for i in range(0,2):
+        p3s.append([])
+        ep3s.append([])
+        edots.append([])
+        dps.append([])
+        for j in range(0, 5):
+            # get valid P3 value
+            da_tmp = da[da["MP C{} F{}: P3_value".format(i+1, j+1)] > 0.0] # has a proper P3
+            p3s[i].append(da_tmp["MP C{} F{}: P3_value".format(i+1, j+1)])
+            ep3s[i].append(da_tmp["MP C{} F{}: P3_error".format(i+1, j+1)])
+            edots[i].append(da_tmp["Edot [ergs/s]"])
+            dps[i].append(da_tmp["C{} Power".format(i+1)]) # drift power here
+            print(da_tmp["JName_paper"], da_tmp["MP 2dfs nrs"])
+    return p3s, ep3s, edots, dps
+
+
 def p3_edot2(datas, labels):
     #print(da.info)
+
+    p3s = []
+    ep3s = []
+    edots = []
+    dps = []
+
+    for da in datas:
+        p3_, ep3_, edots_, dps_ = get_p3s_edots_driftpowers(da)
+        p3s.append(p3_)
+        ep3s.append(ep3_)
+        edots.append(edots_)
+        dps.append(dps_)
+
+    sets = len(datas)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+
+    pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    cm = pl.cm.get_cmap('RdYlBu')
+    for i in range(sets):
+        # first component and feature only
+        for j in range(1):
+            #print("le ", len(edots[i][0][j])) # TODO different numbers for unique but plots are the same!
+            sc = pl.scatter(edots[i][0][j], p3s[i][0][j], c=dps[i][0][j].astype(float), label=labels[i], s=5, zorder=1)
+            pl.errorbar(edots[i][0][j], p3s[i][0][j], fmt='none', yerr=np.array(ep3s[i][0][j]), color="C{}".format(i+1), zorder=2)
+        pl.colorbar(sc)
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([1, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    print("output/p3_edot2.pdf")
+    pl.savefig("output/p3_edot2.pdf")
+    #pl.show()
+
+
+def p3_edot_rahul(datas, labels):
 
     p3s = []
     ep3s = []
@@ -131,6 +197,13 @@ def p3_edot2(datas, labels):
         ep3s.append(ep3_)
         edots.append(edots_)
 
+    # assuming aliasing for negative drift
+    n = 1
+    p3s[1] = p3s_rahul(p3s[1], n=n)
+    ep3s[1] = p3s_rahul(ep3s[1], n=n)
+
+    #print(ep3s[1][0][0])
+
     sets = len(datas)
 
     pl.rc("font", size=12)
@@ -141,16 +214,18 @@ def p3_edot2(datas, labels):
     pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
     for i in range(sets):
         # first component and feature only
-        pl.scatter(edots[i][0][0], p3s[i][0][0], color="C{}".format(i+1), label=labels[i], s=5, zorder=1)
-        pl.errorbar(edots[i][0][0], p3s[i][0][0], fmt='none', yerr=np.array(ep3s[i][0][0]), color="C{}".format(i+1), zorder=2)
+        for j in range(1):
+            #print("le ", len(edots[i][0][j])) # TODO different numbers for unique but plots are the same!
+            pl.scatter(edots[i][0][j], p3s[i][0][j], color="C{}".format(i+1), label=labels[i], s=5, zorder=1)
+            pl.errorbar(edots[i][0][j], p3s[i][0][j], fmt='none', yerr=np.array(ep3s[i][0][j]), color="C{}".format(i+1), zorder=2)
     pl.legend()
     pl.loglog()
     yl = pl.ylim()
-    pl.ylim([1, yl[1]])
+    pl.ylim([0.1, yl[1]])
     pl.xlabel("$\dot{E}$ (ergs/s)")
     pl.ylabel(r"$P_3$ in $P$")
-    print("output/p3_edot2.pdf")
-    pl.savefig("output/p3_edot2.pdf")
+    print("output/p3_edot_rahul.pdf")
+    pl.savefig("output/p3_edot_rahul.pdf")
     #pl.show()
 
 
@@ -191,3 +266,23 @@ def p3_p(datas, labels):
     print("output/p3_p.pdf")
     pl.savefig("output/p3_p.pdf")
     #pl.show()
+
+
+def p3s_rahul(p3s, n=1):
+    new_p3s = []
+    for i in range(len(p3s)):
+        new_p3s.append([])
+        for j in range(len(p3s[i])):
+            new_p3s[-1].append([])
+            for k in range(len(p3s[i][j])):
+                #new_p3s[-1][-1].append([])
+                p3_obs = p3s[i][j][k]
+                p3 = 1.0 / (n + 1.0 / (p3_obs)) # p3_obs in Periods (taken from Julia version)
+                new_p3s[-1][-1].append(p3)
+
+    """
+    for p3_obs in p3s: # p3_obs in Periods (taken from Julia version)
+        p3 = 1 / (n + 1 / (p3_obs))
+        new_p3s.append(p3)
+    """
+    return new_p3s

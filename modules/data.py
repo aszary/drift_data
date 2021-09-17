@@ -129,13 +129,13 @@ def drifting_p3only(filename="data/stats.csv"):
                 print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
     p3only = vstack(ces2)
 
-    # unique drifting only
+    # unique only
     for i in range(0, 2):
         for j in range(0, 5):
             try:
-                mask = drifting["MP_C{}_F{}".format(i+1, j+1)] == "P3only"
-                drifting = drifting[~mask]
+                mask1 = drifting["MP_C{}_F{}".format(i+1, j+1)] == "P3only"
                 mask2 = p3only["MP_C{}_F{}".format(i+1, j+1)] == "drift"
+                drifting = drifting[~mask1]
                 p3only = p3only[~mask2]
             except ValueError:
                 print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
@@ -176,8 +176,7 @@ def positive_negative_mixed(filename="data/stats.csv"):
                 print("Error for ", "MP C{} F{}: P2_value".format(i+1, j+1), "keyword...")
     positive = vstack(pos)
     negative = vstack(neg)
-    print(len(positive))
-
+    #print(len(positive))
 
     mix = []
     for i in range(0, 2):
@@ -187,10 +186,98 @@ def positive_negative_mixed(filename="data/stats.csv"):
             #print(positive[mask2])
             mix.append(positive[mask2])
             mix.append(negative[mask1])
+            # unique records
             positive = positive[~mask2]
             negative = negative[~mask1]
 
     print(len(positive))
+    print(len(negative))
+    mixed = vstack(mix)
+
+    positive["Edot [ergs/s]"] = positive["Edot [ergs/s]"].astype(float)
+    negative["Edot [ergs/s]"] = negative["Edot [ergs/s]"].astype(float)
+    mixed["Edot [ergs/s]"] = mixed["Edot [ergs/s]"].astype(float)
+
+    #print(positive.info())
+    #print(list(negative["JName_paper"]))
+
+    return positive, negative, mixed
+
+
+
+def positive_negative_mixed3(filename="data/stats.csv"):
+    st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
+    ce = st[st['Census']=='YES'] # select the census observation only
+
+    for row in ce:
+        # get MP component numbers
+        mcs = [int(x) for x in row["MP 2dfs nrs"].split(",")]
+        for c in mcs:
+            try:
+                # drift feature
+                f = int(row["MPdominantDriftFeature_C{}".format(c)])
+                # P3
+                if row["MP_C{}_F{}".format(c, f)] == "drift":
+                    p3 = float(row["MP C{} F{}: P3_value".format(c, f)])
+                    p3error = float(row["MP C{} F{}: P3_error".format(c, f)])
+
+                    print(p3, p3error)
+            except:
+                pass
+        """
+        # get IP component numbers
+        ics = []
+        if row["IP 2dfs nrs"] != "???":
+            ics = [int(x) for x in row["IP 2dfs nrs"].split(",")]
+        """
+        #print(row["C4 phase right"])
+
+
+    return 1, 2, 3
+    # TODO - start here
+
+    # drifting only # checking all features for MP no IP included
+    ces = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            try:
+                mask = ce["MP_C{}_F{}".format(i+1, j+1)] == "drift"
+                ces.append(ce[mask])
+            except ValueError:
+                print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
+    dr = vstack(ces)
+
+    # checking P2 / positive, negative, mixed
+    pos = []
+    neg = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            #print("{} {} {}".format(i, j, dr["MP C{} F{}: P2_value".format(i+1, j+1)]))
+            try:
+                mask1 = ce["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
+                pos.append(ce[mask1])
+                mask2 = ce["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
+                neg.append(ce[mask2])
+            except ValueError:
+                print("Error for ", "MP C{} F{}: P2_value".format(i+1, j+1), "keyword...")
+    positive = vstack(pos)
+    negative = vstack(neg)
+    #print(len(positive))
+
+    mix = []
+    for i in range(0, 2):
+        for j in range(0, 5):
+            mask1 = negative["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
+            mask2 = positive["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
+            #print(positive[mask2])
+            mix.append(positive[mask2])
+            mix.append(negative[mask1])
+            # unique records
+            positive = positive[~mask2]
+            negative = negative[~mask1]
+
+    print(len(positive))
+    print(len(negative))
     mixed = vstack(mix)
 
     positive["Edot [ergs/s]"] = positive["Edot [ergs/s]"].astype(float)

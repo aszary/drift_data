@@ -28,6 +28,16 @@ def plot_edot2():
     pl.p3_edot2([d1, d2, d3], ["positive", "negative", "mixed"])
 
 
+def plot_edot3():
+    d1, d2, d3 = da.positive_negative_mixed3()
+    #pl.p3_edot2([d1, d2, d3], ["positive", "negative", "mixed"])
+
+
+def plot_edot_rahul():
+    d1, d2, d3 = da.positive_negative_mixed()
+    pl.p3_edot_rahul([d1, d2, d3], ["positive", "negative", "mixed"])
+
+
 def plot_p():
     d1, d2 = da.drifting_p3only()
     pl.p3_p([d1, d2], ["drifting", "P3only"])
@@ -38,7 +48,9 @@ def main():
     #latex_test()
     #latex_test2()
     #plot_edot()
-    plot_edot2()
+    #plot_edot2()
+    plot_edot3()
+    #plot_edot_rahul()
     #plot_p()
     print("Bye")
 
