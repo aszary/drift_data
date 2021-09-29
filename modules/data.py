@@ -1,6 +1,7 @@
 from astropy.io import ascii
 from astropy.table import Table, vstack, setdiff
 import pandas as pd
+import numpy as np
 
 
 def latexify(table):
@@ -204,87 +205,221 @@ def positive_negative_mixed(filename="data/stats.csv"):
     return positive, negative, mixed
 
 
-
 def positive_negative_mixed3(filename="data/stats.csv"):
     st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
     ce = st[st['Census']=='YES'] # select the census observation only
+    ce["Edot [ergs/s]"] = ce["Edot [ergs/s]"].astype(float)
+
+    jnames_pos = []
+    p3s_pos = []
+    ep3s_pos = []
+    edots_pos = []
+    dps_pos = []
+
+    jnames_neg = []
+    p3s_neg = []
+    ep3s_neg = []
+    edots_neg = []
+    dps_neg = []
 
     for row in ce:
         # get MP component numbers
         mcs = [int(x) for x in row["MP 2dfs nrs"].split(",")]
-        for c in mcs:
+        for i,c in enumerate(mcs):
             try:
                 # drift feature
-                f = int(row["MPdominantDriftFeature_C{}".format(c)])
+                #print("ip1 ", i+1, " c ", c)
+                f = int(row["MPdominantDriftFeature_C{}".format(i+1)]) # not c only two records
                 # P3
-                if row["MP_C{}_F{}".format(c, f)] == "drift":
-                    p3 = float(row["MP C{} F{}: P3_value".format(c, f)])
-                    p3error = float(row["MP C{} F{}: P3_error".format(c, f)])
-
-                    print(p3, p3error)
+                if row["MP_C{}_F{}".format(i+1, f)] == "drift":
+                    p3 = float(row["MP C{} F{}: P3_value".format(i+1, f)])
+                    p3error = float(row["MP C{} F{}: P3_error".format(i+1, f)])
+                    p2 = float(row["MP C{} F{}: P2_value".format(i+1, f)])
+                    edot = float(row["Edot [ergs/s]"])
+                    jname = row["JName_paper"]
+                    driftpower = float(row["C{} Power".format(c)]) # here c is fine..
+                    if p2 > 0:
+                        jnames_pos.append(jname)
+                        p3s_pos.append(p3)
+                        ep3s_pos.append(p3error)
+                        edots_pos.append(edot)
+                        dps_pos.append(driftpower)
+                    elif p2 < 0:
+                        jnames_neg.append(jname)
+                        p3s_neg.append(p3)
+                        ep3s_neg.append(p3error)
+                        edots_neg.append(edot)
+                        dps_neg.append(driftpower)
             except:
                 pass
-        """
-        # get IP component numbers
+        # get IP components # adds only one record?!
         ics = []
         if row["IP 2dfs nrs"] != "???":
             ics = [int(x) for x in row["IP 2dfs nrs"].split(",")]
-        """
-        #print(row["C4 phase right"])
-
-
-    return 1, 2, 3
-    # TODO - start here
-
-    # drifting only # checking all features for MP no IP included
-    ces = []
-    for i in range(0, 2):
-        for j in range(0, 5):
+        for i,c in enumerate(ics):
             try:
-                mask = ce["MP_C{}_F{}".format(i+1, j+1)] == "drift"
-                ces.append(ce[mask])
-            except ValueError:
-                print("Error for ", "MP_C{}_F{}".format(i+1, j+1), "keyword...")
-    dr = vstack(ces)
+                # drift feature
+                f = int(row["IPdominantDriftFeature_C{}".format(i+1)])
+                # P3
+                if row["IP_C{}_F{}".format(i+1, f)] == "drift":
+                    p3 = float(row["IP C{} F{}: P3_value".format(i+1, f)])
+                    p3error = float(row["IP C{} F{}: P3_error".format(i+1, f)])
+                    p2 = float(row["IP C{} F{}: P2_value".format(i+1, f)])
+                    edot = float(row["Edot [ergs/s]"])
+                    jname = row["JName_paper"]
+                    driftpower = float(row["C{} Power".format(c)])
+                    if p2 > 0:
+                        jnames_pos.append(jname)
+                        p3s_pos.append(p3)
+                        ep3s_pos.append(p3error)
+                        edots_pos.append(edot)
+                        dps_pos.append(driftpower)
+                    elif p2 < 0:
+                        jnames_neg.append(jname)
+                        p3s_neg.append(p3)
+                        ep3s_neg.append(p3error)
+                        edots_neg.append(edot)
+                        dps_neg.append(driftpower)
+            except np.ma.core.MaskError:
+                pass
 
-    # checking P2 / positive, negative, mixed
-    pos = []
-    neg = []
-    for i in range(0, 2):
-        for j in range(0, 5):
-            #print("{} {} {}".format(i, j, dr["MP C{} F{}: P2_value".format(i+1, j+1)]))
+    jnames_mix = []
+    p3s_mix = []
+    ep3s_mix = []
+    edots_mix = []
+    dps_mix = []
+
+    mixed = []
+    for name in jnames_pos:
+        if name in jnames_neg:
+           mixed.append(name)
+
+    # wow so lame...
+    for name in mixed:
+        i = jnames_pos.index(name)
+        jnames_mix.append(name)
+        p3s_mix.append(p3s_pos[i])
+        ep3s_mix.append(ep3s_pos[i])
+        edots_mix.append(edots_pos[i])
+        dps_mix.append(dps_pos[i])
+        jnames_pos.pop(i)
+        p3s_pos.pop(i)
+        ep3s_pos.pop(i)
+        edots_pos.pop(i)
+        dps_pos.pop(i)
+        j = jnames_neg.index(name)
+        jnames_mix.append(name)
+        p3s_mix.append(p3s_neg[j])
+        ep3s_mix.append(ep3s_neg[j])
+        edots_mix.append(edots_neg[j])
+        dps_mix.append(dps_neg[j])
+        jnames_neg.pop(j)
+        p3s_neg.pop(j)
+        ep3s_neg.pop(j)
+        edots_neg.pop(j)
+        dps_neg.pop(j)
+
+    print("Positive: ", len(jnames_pos))
+    print("Negative: ", len(jnames_neg))
+    print("Mixed: ", len(jnames_mix))
+
+    return [jnames_pos, p3s_pos, ep3s_pos, edots_pos, dps_pos], [jnames_neg, p3s_neg, ep3s_neg, edots_neg, dps_neg], [jnames_mix, p3s_mix, ep3s_mix, edots_mix, dps_mix]
+
+
+
+def drifting_p3only2(filename="data/stats.csv"):
+    st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
+    ce = st[st['Census']=='YES'] # select the census observation only
+    #ce["Edot [ergs/s]"] = ce["Edot [ergs/s]"].astype(float)
+
+    jnames_dr = []
+    p3s_dr = []
+    ep3s_dr = []
+    ps_dr = []
+    dps_dr = []
+    pdots_dr = []
+
+    jnames_p3o = []
+    p3s_p3o = []
+    ep3s_p3o = []
+    ps_p3o = []
+    dps_p3o = []
+    pdots_p3o = []
+
+    for row in ce:
+        # get MP component numbers
+        mcs = [int(x) for x in row["MP 2dfs nrs"].split(",")]
+        for i,c in enumerate(mcs):
             try:
-                mask1 = ce["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
-                pos.append(ce[mask1])
-                mask2 = ce["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
-                neg.append(ce[mask2])
-            except ValueError:
-                print("Error for ", "MP C{} F{}: P2_value".format(i+1, j+1), "keyword...")
-    positive = vstack(pos)
-    negative = vstack(neg)
-    #print(len(positive))
+                fd = int(row["MPdominantDriftFeature_C{}".format(i+1)]) # not c only two records
+            except:
+                fd = None
+            try:
+                f3 = int(row["MPdominantP3Feature_C{}".format(i+1)]) # not c only two records
+            except:
+                f3 = None
+            # drift feature
+            p = float(row["Period [s]"])
+            pdot = float(row["Pdot [s/s]"])
+            jname = row["JName_paper"]
+            driftpower = float(row["C{} Power".format(c)]) # here c is fine..
+            if (fd is not None) and (row["MP_C{}_F{}".format(i+1, fd)] == "drift"):
+                p3 = float(row["MP C{} F{}: P3_value".format(i+1, fd)])
+                p3error = float(row["MP C{} F{}: P3_error".format(i+1, fd)])
+                jnames_dr.append(jname)
+                p3s_dr.append(p3)
+                ep3s_dr.append(p3error)
+                ps_dr.append(p)
+                dps_dr.append(driftpower)
+                pdots_dr.append(pdot)
+            elif (f3 is not None) and (row["MP_C{}_F{}".format(i+1, f3)] == "P3only"):
+                p3 = float(row["MP C{} F{}: P3_value".format(i+1, f3)])
+                p3error = float(row["MP C{} F{}: P3_error".format(i+1, f3)])
+                jnames_p3o.append(jname)
+                p3s_p3o.append(p3)
+                ep3s_p3o.append(p3error)
+                ps_p3o.append(p)
+                dps_p3o.append(driftpower)
+                pdots_p3o.append(pdot)
+            #except np.ma.core.MaskError:
+            #    pass
+        # get IP components #
+        ics = []
+        if row["IP 2dfs nrs"] != "???":
+            ics = [int(x) for x in row["IP 2dfs nrs"].split(",")]
+        for i,c in enumerate(ics):
+            try:
+                fd = int(row["IPdominantDriftFeature_C{}".format(i+1)]) # not c only two records
+            except:
+                fd = None
+            try:
+                f3 = int(row["IPdominantP3Feature_C{}".format(i+1)]) # not c only two records
+            except:
+                f3 = None
+            # drift feature
+            p = float(row["Period [s]"])
+            pdot = float(row["Pdot [s/s]"])
+            jname = row["JName_paper"]
+            driftpower = float(row["C{} Power".format(c)]) # here c is fine..
+            if (fd is not None) and (row["MP_C{}_F{}".format(i+1, fd)] == "drift"):
+                p3 = float(row["IP C{} F{}: P3_value".format(i+1, fd)])
+                p3error = float(row["IP C{} F{}: P3_error".format(i+1, fd)])
+                jnames_dr.append(jname)
+                p3s_dr.append(p3)
+                ep3s_dr.append(p3error)
+                ps_dr.append(p)
+                dps_dr.append(driftpower)
+                pdots_dr.append(pdot)
+            elif (f3 is not None) and (row["IP_C{}_F{}".format(i+1, f3)] == "P3only"):
+                p3 = float(row["IP C{} F{}: P3_value".format(i+1, f3)])
+                p3error = float(row["IP C{} F{}: P3_error".format(i+1, f3)])
+                jnames_p3o.append(jname)
+                p3s_p3o.append(p3)
+                ep3s_p3o.append(p3error)
+                ps_p3o.append(p)
+                dps_p3o.append(driftpower)
+                pdots_p3o.append(pdot)
+    print("Drift: ", len(jnames_dr))
+    print("P3only: ", len(jnames_p3o))
 
-    mix = []
-    for i in range(0, 2):
-        for j in range(0, 5):
-            mask1 = negative["MP C{} F{}: P2_value".format(i+1, j+1)] > 0.
-            mask2 = positive["MP C{} F{}: P2_value".format(i+1, j+1)] < 0.
-            #print(positive[mask2])
-            mix.append(positive[mask2])
-            mix.append(negative[mask1])
-            # unique records
-            positive = positive[~mask2]
-            negative = negative[~mask1]
-
-    print(len(positive))
-    print(len(negative))
-    mixed = vstack(mix)
-
-    positive["Edot [ergs/s]"] = positive["Edot [ergs/s]"].astype(float)
-    negative["Edot [ergs/s]"] = negative["Edot [ergs/s]"].astype(float)
-    mixed["Edot [ergs/s]"] = mixed["Edot [ergs/s]"].astype(float)
-
-    #print(positive.info())
-    #print(list(negative["JName_paper"]))
-
-    return positive, negative, mixed
+    return [jnames_dr, p3s_dr, ep3s_dr, ps_dr, dps_dr, pdots_dr], [jnames_p3o, p3s_p3o, ep3s_p3o, ps_p3o, dps_p3o, pdots_p3o]

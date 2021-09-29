@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as pl
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def test_plot(data):
@@ -185,6 +186,48 @@ def p3_edot2(datas, labels):
     #pl.show()
 
 
+def p3_edot3(datas, labels):
+    p3s = []
+    ep3s = []
+    edots = []
+    dps = []
+
+    for d in datas:
+        p3s.append(d[1])
+        ep3s.append(d[2])
+        edots.append(d[3])
+        dps.append(d[4])
+
+    sets = len(datas)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+
+    for i in range(sets):
+        sc = pl.scatter(edots[i], p3s[i], c=dps[i], s=5, cmap=cmaps[i], zorder=1)
+        pl.errorbar(edots[i], p3s[i], fmt='none', yerr=ep3s[i], color=colors[i], zorder=2, label=labels[i])
+        #co = pl.colorbar(sc, shrink=0.5)
+        #pl.clim([0,70])
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_edot3.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
 def p3_edot_rahul(datas, labels):
 
     p3s = []
@@ -229,6 +272,53 @@ def p3_edot_rahul(datas, labels):
     #pl.show()
 
 
+def p3_edot_rahul2(datas, labels):
+    p3s = []
+    ep3s = []
+    edots = []
+    dps = []
+
+    for d in datas:
+        p3s.append(d[1])
+        ep3s.append(d[2])
+        edots.append(d[3])
+        dps.append(d[4])
+
+    # assuming aliasing for negative drift
+    n = 1
+    p3s[1] = p3s_rahul2(p3s[1], n=n)
+    ep3s[1] = p3s_rahul2(ep3s[1], n=n)
+
+    sets = len(datas)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+
+    for i in range(sets):
+        sc = pl.scatter(edots[i], p3s[i], c=dps[i], s=5, cmap=cmaps[i], zorder=1)
+        pl.errorbar(edots[i], p3s[i], fmt='none', yerr=ep3s[i], color=colors[i], zorder=2, label=labels[i])
+        #co = pl.colorbar(sc, shrink=0.5)
+        #pl.clim([0,70])
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.1, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_edot_rahul_2.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
 def p3_p(datas, labels):
     #print(da.info)
 
@@ -268,7 +358,108 @@ def p3_p(datas, labels):
     #pl.show()
 
 
+def p3_pnew(datas, labels):
+    #print(da.info)
+
+    p3s = []
+    ep3s = []
+    ps = []
+    dps = []
+    pdots = []
+
+    for d in datas:
+        p3s.append(d[1])
+        ep3s.append(d[2])
+        ps.append(d[3])
+        dps.append(d[4])
+        pdots.append(d[5])
+
+    #print(ps[1])
+    #return
+    sets = len(datas)
+
+    #cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    #colors = ["tab:red", "tab:blue", "tab:green"]
+    colors = ["C1", "C2", "C3"]
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    for i in range(sets):
+        #pl.scatter(ps[i], p3s[i], c=dps[i], cmap=cmaps[i], s=5, zorder=1)
+        #pl.scatter(np.array(ps[i])**2.1, p3s[i], c=colors[i], s=5, zorder=1, alpha=0.77)
+        #pl.scatter(np.array(pdots[i])**(-0.015) * np.array(ps[i]), p3s[i], c=colors[i], s=5, zorder=1, alpha=0.77)
+        pl.scatter(np.array(ps[i]), np.array(p3s[i]) , c=colors[i], s=5, zorder=1, alpha=0.77)
+        pl.errorbar(ps[i], p3s[i], fmt='none', yerr=ep3s[i], label=labels[i], color=colors[i], zorder=2)
+    #pl.legend()
+    #pl.semilogx()
+    #pl.semilogy()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([1, yl[1]])
+    #pl.xlim([1e-20, 1e-11])
+    pl.xlabel("$P$ (s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_pnew.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_psec(datas, labels):
+    #print(da.info)
+
+    p3s = []
+    ep3s = []
+    ps = []
+    dps = []
+    pdots = []
+
+    for d in datas:
+        p3s.append(d[1])
+        ep3s.append(d[2])
+        ps.append(d[3])
+        dps.append(d[4])
+        pdots.append(d[5])
+
+    #print(ps[1])
+    #return
+    sets = len(datas)
+
+    #cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    #colors = ["tab:red", "tab:blue", "tab:green"]
+    colors = ["C1", "C2", "C3"]
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    for i in range(sets):
+        pl.scatter(np.array(ps[i]), np.array(p3s[i]) * np.array(ps[i]) , c=colors[i], s=5, zorder=1, alpha=0.77)
+    pl.plot(np.array(ps[0]), np.array(ps[0]) * 2., color="black", ls="--" , dashes=(10, 10))
+    #pl.legend()
+    #pl.semilogx()
+    #pl.semilogy()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([7e-2, yl[1]])
+    #pl.xlim([1e-20, 1e-11])
+    pl.xlabel("$P$ (s)")
+    pl.ylabel(r"$P_3$ (s)")
+    filename = "output/p3_psec.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+
 def p3s_rahul(p3s, n=1):
+    # why so many indices i, j, k? does p3_edot_rahul() work?
     new_p3s = []
     for i in range(len(p3s)):
         new_p3s.append([])
@@ -279,6 +470,21 @@ def p3s_rahul(p3s, n=1):
                 p3_obs = p3s[i][j][k]
                 p3 = 1.0 / (n + 1.0 / (p3_obs)) # p3_obs in Periods (taken from Julia version)
                 new_p3s[-1][-1].append(p3)
+    """
+    for p3_obs in p3s: # p3_obs in Periods (taken from Julia version)
+        p3 = 1 / (n + 1 / (p3_obs))
+        new_p3s.append(p3)
+    """
+    return new_p3s
+
+
+def p3s_rahul2(p3s, n=1):
+    new_p3s = []
+    for i in range(len(p3s)):
+        #new_p3s[-1][-1].append([])
+        p3_obs = p3s[i]
+        p3 = 1.0 / (n + 1.0 / (p3_obs)) # p3_obs in Periods (taken from Julia version)
+        new_p3s.append(p3)
 
     """
     for p3_obs in p3s: # p3_obs in Periods (taken from Julia version)
