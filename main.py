@@ -33,6 +33,11 @@ def plot_edot3():
     pl.p3_edot3([d1, d2, d3], ["positive", "negative", "mixed"])
 
 
+def plot_edot_sec():
+    d1, d2, d3 = da.positive_negative_mixed3()
+    pl.p3_edot_sec([d1, d2, d3], ["positive", "negative", "mixed"])
+
+
 def plot_edot_rahul():
     d1, d2, d3 = da.positive_negative_mixed()
     pl.p3_edot_rahul([d1, d2, d3], ["positive", "negative", "mixed"])
@@ -53,17 +58,26 @@ def plot_pnew():
     pl.p3_psec([d1, d2], ["drifting", "P3only"])
 
 
+def plot_p3mean_p():
+    d1, d2 = da.drifting_p3only2()
+    d3 = da.allfeaturesp3_xiaoxi()
+    pl.p3_p_xcheck([d1, d2], d3)
+    pl.p3mean_p([d1, d2], d3)
+
+
 def main():
     #test()
-    #latex_test()
+    #latex_test() # obsolete
     #latex_test2()
     #plot_edot()
     #plot_edot2()
     #plot_edot3()
-    #plot_edot_rahul()
+    #plot_edot_rahul() # obsolete
     #plot_edot_rahul2()
-    #plot_p()
-    plot_pnew()
+    #plot_p() # obsolete
+    #plot_pnew()
+    #plot_edot_sec()
+    plot_p3mean_p()
     print("Bye")
 
 

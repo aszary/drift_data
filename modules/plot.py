@@ -212,7 +212,8 @@ def p3_edot3(datas, labels):
     pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
 
     for i in range(sets):
-        sc = pl.scatter(edots[i], p3s[i], c=dps[i], s=5, cmap=cmaps[i], zorder=1)
+        #sc = pl.scatter(edots[i], p3s[i], c=dps[i], s=5, cmap=cmaps[i], zorder=1)
+        sc = pl.scatter(edots[i], p3s[i], c=colors[i], s=5, cmap=cmaps[i], zorder=1)
         pl.errorbar(edots[i], p3s[i], fmt='none', yerr=ep3s[i], color=colors[i], zorder=2, label=labels[i])
         #co = pl.colorbar(sc, shrink=0.5)
         #pl.clim([0,70])
@@ -226,6 +227,52 @@ def p3_edot3(datas, labels):
     print(filename)
     pl.savefig(filename)
     #pl.show()
+
+
+def p3_edot_sec(datas, labels):
+    p3s = []
+    ep3s = []
+    edots = []
+    dps = []
+    ps = []
+
+    for d in datas:
+        p3s.append(d[1])
+        ep3s.append(d[2])
+        edots.append(d[3])
+        dps.append(d[4])
+        ps.append(d[5])
+
+    sets = len(datas)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+
+    for i in range(sets):
+        #sc = pl.scatter(edots[i], np.array(p3s[i]) * np.array(ps[i]), c=dps[i], s=5, cmap=cmaps[i], zorder=1)
+        sc = pl.scatter(edots[i], np.array(p3s[i]) * np.array(ps[i]), c=colors[i], s=5, cmap=cmaps[i], zorder=1)
+        pl.errorbar(edots[i], np.array(p3s[i]) * np.array(ps[i]), fmt='none', yerr=np.array(ep3s[i]) * np.array(ps[i]), color=colors[i], zorder=2, label=labels[i])
+        #co = pl.colorbar(sc, shrink=0.5)
+        #pl.clim([0,70])
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    #pl.ylim([0.1, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ ($s$)")
+    filename = "output/p3_edot_sec.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
 
 
 def p3_edot_rahul(datas, labels):
@@ -492,3 +539,125 @@ def p3s_rahul2(p3s, n=1):
         new_p3s.append(p3)
     """
     return new_p3s
+
+
+def p3_p_xcheck(datas, xdata):
+    #print(da.info)
+    p3s = []
+    ep3s = []
+    ps = []
+    for d in datas:
+        p3s.append(d[1])
+        ep3s.append(d[2])
+        ps.append(d[3])
+
+    xp3s = xdata[1]
+    xep3s = xdata[2]
+    xps = xdata[3]
+
+    sets = len(datas)
+
+    colors = ["C0", "C1", "C3"]
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    for i in range(sets):
+        pl.scatter(np.array(ps[i]), np.array(p3s[i]) , c=colors[0], s=5, zorder=1, alpha=0.77)
+    pl.scatter(np.array(xps), np.array(xp3s) , c=colors[1], s=5, zorder=2, alpha=0.5)
+    #pl.legend()
+    #pl.semilogx()
+    #pl.semilogy()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([1, yl[1]])
+    #pl.xlim([1e-20, 1e-11])
+    pl.xlabel("$P$ (s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_p_xcheck.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3mean_p(datas, xdata):
+    #print(da.info)
+
+    p3s = []
+    ep3s = []
+    ps = []
+    p3s.append(list(datas[0][1]) + list(datas[1][1]))
+    ep3s.append(list(datas[0][2]) + list(datas[1][2]))
+    ps.append(list(datas[0][3]) + list(datas[1][3]))
+
+    p3s.append(xdata[1])
+    ep3s.append(xdata[2])
+    ps.append(xdata[3])
+
+    sets = len(p3s)
+
+    mi = np.min([np.min(ps[0]), np.min(ps[1])])
+    ma = np.max([np.max(ps[0]), np.max(ps[1])])
+    #print(mi)
+    #print(ma)
+
+    bins = 5
+
+    pbins = np.logspace(np.log10(mi), np.log10(ma), num=bins+1)
+
+    p3_ = []
+    for i in range(sets):
+        p3_.append([])
+        for j in range(bins):
+            p3_[-1].append([])
+            for k in range(len(p3s[i])):
+                if ps[i][k] >= pbins[j] and ps[i][k] < pbins[j+1]:
+                    p3_[-1][-1].append(p3s[i][k])
+    p3means = []
+    ep3means = []
+    for i in range(sets):
+        p3means.append([])
+        ep3means.append([])
+        for j in range(bins):
+            p3means[-1].append(np.mean(p3_[i][j]))
+            #ep3means[-1].append(np.std(p3_[i][j]) / len(p3_[i][j]))
+            ep3means[-1].append(np.std(p3_[i][j]))
+    # last step?
+    p3means[0].append(p3means[0][-1])
+    p3means[1].append(p3means[1][-1])
+
+    # for errorbars
+    dlog = (np.log10(pbins[1]) - np.log10(pbins[0])) / 2
+    epbins = np.logspace(np.log10(pbins[0]) + dlog, np.log10(pbins[-2]) + dlog, num=bins)
+
+    colors = ["C1", "C2", "C3"]
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    pl.scatter(ps[0], p3s[0] , c="C0", s=5, zorder=1, alpha=0.57, label="Andrzej")
+    pl.scatter(ps[1], p3s[1] , c="C1", s=5, zorder=2, alpha=0.57, label="Xiaoxi")
+    pl.step(pbins, p3means[0], where='post', c="C0", lw=3, alpha=0.7)
+    pl.step(pbins, p3means[1], where='post', c="C1", lw=3, alpha=0.7)
+    pl.errorbar(epbins, p3means[1][:-1],  yerr=ep3means[1], c="C1", fmt='none', lw=2)
+    pl.legend()
+    pl.semilogx()
+    #pl.semilogy()
+    #pl.loglog()
+    yl = pl.ylim()
+    #pl.ylim([1, yl[1]])
+    #pl.ylim([0, 25])
+    pl.ylim([-10, 50])
+    #pl.xlim([1e-20, 1e-11])
+    pl.xlabel("$P$ (s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3mean_p.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()

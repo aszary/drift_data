@@ -215,12 +215,14 @@ def positive_negative_mixed3(filename="data/stats.csv"):
     ep3s_pos = []
     edots_pos = []
     dps_pos = []
+    ps_pos = []
 
     jnames_neg = []
     p3s_neg = []
     ep3s_neg = []
     edots_neg = []
     dps_neg = []
+    ps_neg = []
 
     for row in ce:
         # get MP component numbers
@@ -235,6 +237,7 @@ def positive_negative_mixed3(filename="data/stats.csv"):
                     p3 = float(row["MP C{} F{}: P3_value".format(i+1, f)])
                     p3error = float(row["MP C{} F{}: P3_error".format(i+1, f)])
                     p2 = float(row["MP C{} F{}: P2_value".format(i+1, f)])
+                    p = float(row["Period [s]"])
                     edot = float(row["Edot [ergs/s]"])
                     jname = row["JName_paper"]
                     driftpower = float(row["C{} Power".format(c)]) # here c is fine..
@@ -244,12 +247,14 @@ def positive_negative_mixed3(filename="data/stats.csv"):
                         ep3s_pos.append(p3error)
                         edots_pos.append(edot)
                         dps_pos.append(driftpower)
+                        ps_pos.append(p)
                     elif p2 < 0:
                         jnames_neg.append(jname)
                         p3s_neg.append(p3)
                         ep3s_neg.append(p3error)
                         edots_neg.append(edot)
                         dps_neg.append(driftpower)
+                        ps_neg.append(p)
             except:
                 pass
         # get IP components # adds only one record?!
@@ -266,6 +271,7 @@ def positive_negative_mixed3(filename="data/stats.csv"):
                     p3error = float(row["IP C{} F{}: P3_error".format(i+1, f)])
                     p2 = float(row["IP C{} F{}: P2_value".format(i+1, f)])
                     edot = float(row["Edot [ergs/s]"])
+                    p = float(row["Period [s]"])
                     jname = row["JName_paper"]
                     driftpower = float(row["C{} Power".format(c)])
                     if p2 > 0:
@@ -274,12 +280,14 @@ def positive_negative_mixed3(filename="data/stats.csv"):
                         ep3s_pos.append(p3error)
                         edots_pos.append(edot)
                         dps_pos.append(driftpower)
+                        ps_pos.append(p)
                     elif p2 < 0:
                         jnames_neg.append(jname)
                         p3s_neg.append(p3)
                         ep3s_neg.append(p3error)
                         edots_neg.append(edot)
                         dps_neg.append(driftpower)
+                        ps_neg.append(p)
             except np.ma.core.MaskError:
                 pass
 
@@ -288,6 +296,7 @@ def positive_negative_mixed3(filename="data/stats.csv"):
     ep3s_mix = []
     edots_mix = []
     dps_mix = []
+    ps_mix = []
 
     mixed = []
     for name in jnames_pos:
@@ -302,28 +311,32 @@ def positive_negative_mixed3(filename="data/stats.csv"):
         ep3s_mix.append(ep3s_pos[i])
         edots_mix.append(edots_pos[i])
         dps_mix.append(dps_pos[i])
+        ps_mix.append(ps_pos[i])
         jnames_pos.pop(i)
         p3s_pos.pop(i)
         ep3s_pos.pop(i)
         edots_pos.pop(i)
         dps_pos.pop(i)
+        ps_pos.pop(i)
         j = jnames_neg.index(name)
         jnames_mix.append(name)
         p3s_mix.append(p3s_neg[j])
         ep3s_mix.append(ep3s_neg[j])
         edots_mix.append(edots_neg[j])
         dps_mix.append(dps_neg[j])
+        ps_mix.append(ps_neg[j])
         jnames_neg.pop(j)
         p3s_neg.pop(j)
         ep3s_neg.pop(j)
         edots_neg.pop(j)
         dps_neg.pop(j)
+        ps_neg.pop(j)
 
     print("Positive: ", len(jnames_pos))
     print("Negative: ", len(jnames_neg))
     print("Mixed: ", len(jnames_mix))
 
-    return [jnames_pos, p3s_pos, ep3s_pos, edots_pos, dps_pos], [jnames_neg, p3s_neg, ep3s_neg, edots_neg, dps_neg], [jnames_mix, p3s_mix, ep3s_mix, edots_mix, dps_mix]
+    return [jnames_pos, p3s_pos, ep3s_pos, edots_pos, dps_pos, ps_pos], [jnames_neg, p3s_neg, ep3s_neg, edots_neg, dps_neg, ps_neg], [jnames_mix, p3s_mix, ep3s_mix, edots_mix, dps_mix, ps_mix]
 
 
 
@@ -423,3 +436,16 @@ def drifting_p3only2(filename="data/stats.csv"):
     print("P3only: ", len(jnames_p3o))
 
     return [jnames_dr, p3s_dr, ep3s_dr, ps_dr, dps_dr, pdots_dr], [jnames_p3o, p3s_p3o, ep3s_p3o, ps_p3o, dps_p3o, pdots_p3o]
+
+
+def allfeaturesp3_xiaoxi(filename="data/allfeaturesp3.csv"):
+    st = Table.read(filename, format='ascii', header_start=0, data_start=1) # read in the table
+    #print(st.info)
+    jnames = list(st["JName"])
+    p3s = list(st["P3"])
+    ep3s = list(st["P3_error"])
+    ps = list(st["Period [s]"])
+    edots = list(st["Edot [ergs/s]"])
+    pdots = list(st["Pdot [s/s]"])
+
+    return [jnames, p3s, ep3s, ps, pdots, edots]
