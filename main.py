@@ -65,6 +65,17 @@ def plot_p3mean_p():
     pl.p3mean_p([d1, d2], d3)
 
 
+def plot_edotp():
+    d1, d2, d3 = da.positive_negative_mixed3()
+    pl.p3_edotp([d1, d2, d3], ["positive", "negative", "mixed"])
+
+
+def generate_edot():
+    d1, d2, d3 = da.positive_negative_mixed3()
+    pl.generate_p3_edot([d1, d2, d3], ["positive", "negative", "mixed"])
+
+
+
 def main():
     #test()
     #latex_test() # obsolete
@@ -77,7 +88,9 @@ def main():
     #plot_p() # obsolete
     #plot_pnew()
     #plot_edot_sec()
-    plot_p3mean_p()
+    #plot_p3mean_p()
+    #plot_edotp()
+    generate_edot()
     print("Bye")
 
 

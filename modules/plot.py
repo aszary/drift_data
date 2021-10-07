@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from modules.functions import least_sq
 
 def test_plot(data):
     pl.figure()
@@ -543,17 +544,23 @@ def p3s_rahul2(p3s, n=1):
 
 def p3_p_xcheck(datas, xdata):
     #print(da.info)
-    p3s = []
-    ep3s = []
-    ps = []
-    for d in datas:
-        p3s.append(d[1])
-        ep3s.append(d[2])
-        ps.append(d[3])
+
+    jnames = list(datas[0][0]) + list(datas[1][0])
+    p3s = list(datas[0][1]) + list(datas[1][1])
+    ep3s = list(datas[0][2]) + list(datas[1][2])
+    ps = list(datas[0][3]) + list(datas[1][3])
 
     xp3s = xdata[1]
     xep3s = xdata[2]
     xps = xdata[3]
+
+    # find blue points
+    for i in range(len(p3s)):
+        res_list = [j for j in range(len(xp3s)) if xp3s[j] == p3s[i]]
+        for ind in res_list:
+            #print(ps[i], xps[ind])
+            if ps[i] != xps[ind]:
+                print(jnames[i], ps[i], xps[ind])
 
     sets = len(datas)
 
@@ -565,8 +572,7 @@ def p3_p_xcheck(datas, xdata):
 
     pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
     pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
-    for i in range(sets):
-        pl.scatter(np.array(ps[i]), np.array(p3s[i]) , c=colors[0], s=5, zorder=1, alpha=0.77)
+    pl.scatter(np.array(ps), np.array(p3s) , c=colors[0], s=5, zorder=1, alpha=0.77)
     pl.scatter(np.array(xps), np.array(xp3s) , c=colors[1], s=5, zorder=2, alpha=0.5)
     #pl.legend()
     #pl.semilogx()
@@ -586,12 +592,9 @@ def p3_p_xcheck(datas, xdata):
 def p3mean_p(datas, xdata):
     #print(da.info)
 
-    p3s = []
-    ep3s = []
-    ps = []
-    p3s.append(list(datas[0][1]) + list(datas[1][1]))
-    ep3s.append(list(datas[0][2]) + list(datas[1][2]))
-    ps.append(list(datas[0][3]) + list(datas[1][3]))
+    p3s = [list(datas[0][1]) + list(datas[1][1])]
+    ep3s = [list(datas[0][2]) + list(datas[1][2])]
+    ps = [list(datas[0][3]) + list(datas[1][3])]
 
     p3s.append(xdata[1])
     ep3s.append(xdata[2])
@@ -658,6 +661,171 @@ def p3mean_p(datas, xdata):
     pl.xlabel("$P$ (s)")
     pl.ylabel(r"$P_3$ in $P$")
     filename = "output/p3mean_p.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_edotp(datas, labels):
+    p3s = []
+    ep3s = []
+    edots = []
+    dps = []
+    ps = []
+
+    for d in datas:
+        p3s.append(d[1])
+        ep3s.append(d[2])
+        edots.append(d[3])
+        dps.append(d[4])
+        ps.append(d[5])
+
+    sets = len(datas)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+
+    for i in range(sets):
+        #sc = pl.scatter(edots[i], np.array(p3s[i]) * np.array(ps[i]), c=dps[i], s=5, cmap=cmaps[i], zorder=1)
+        sc = pl.scatter(np.sqrt(np.array(edots[i]) * np.array(ps[i])), np.array(p3s[i]), c=colors[i], s=5, cmap=cmaps[i], zorder=1)
+        pl.errorbar(np.sqrt(np.array(edots[i]) * np.array(ps[i])), np.array(p3s[i]), fmt='none', yerr=np.array(ep3s[i]) * np.array(ps[i]), color=colors[i], zorder=2, label=labels[i])
+        #co = pl.colorbar(sc, shrink=0.5)
+        #pl.clim([0,70])
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    #pl.ylim([0.1, yl[1]])
+    pl.xlabel("$\sqrt{\dot{E} P}$ ($\sqrt{\\rm ergs}$)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_edotp.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def generate_p3_edot(datas, labels, edot_min=3e30, edot_max=2e31): # 1e27, 1e30, 3e30
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+    dps = []
+    ps = []
+
+    for d in datas:
+        p3s += list(d[1])
+        ep3s += list(d[2])
+        edots += list(d[3])
+        dps += list(d[4])
+        ps += list(d[5])
+
+    # to fit linear dependence
+    p3s_fit = []
+    ep3s_fit = []
+    edots_fit = []
+    ps_fit = []
+
+    for i,edot in enumerate(edots):
+        if (edot >= edot_min) and (edot <= edot_max):
+            p3s_fit.append(p3s[i])
+            ep3s_fit.append(ep3s[i])
+            edots_fit.append(edots[i])
+            ps_fit.append(ps[i])
+
+    # fitting linear dependence
+    fun = lambda v, x: v[0] * x + v[1]
+    v0 = [-0.6, 20]
+    x, y, v = least_sq(np.log10(np.array(edots_fit)), np.log10(np.array(p3s_fit)), fun, v0, xmax=None)
+    sigma = np.std(np.log10(np.array(p3s_fit))) #/ 2 # TODO this is wrong you lazy bastard
+    print(v)
+    x = 10 ** x
+    y = 10 ** y
+
+
+    p3pred = lambda x: x ** v[0] * 10 ** v[1]
+    xline = np.logspace(30, 35, num=100)
+    yline = p3pred(xline)
+
+    # to be modeled only high or all?
+    all = True
+    p3s_high = []
+    ep3s_high = []
+    edots_high = []
+    ps_high = []
+    for i,edot in enumerate(edots):
+        if all is True:
+            p3s_high.append(p3s[i])
+            ep3s_high.append(ep3s[i])
+            edots_high.append(edots[i])
+            ps_high.append(ps[i])
+        else:
+            if (edot > edot_max):
+                p3s_high.append(p3s[i])
+                ep3s_high.append(ep3s[i])
+                edots_high.append(edots[i])
+                ps_high.append(ps[i])
+
+    # generating data
+    p3s_model = []
+    p3s_model_obs = []
+    edots_model = []
+    ps_model = []
+
+    for i,edot in enumerate(edots_high):
+        edot_lin = np.log10(edot)
+        p3_lin = np.random.normal(fun(v, edot_lin), sigma)
+        p3 = 10 ** p3_lin
+        edots_model.append(edots_high[i])
+        p3s_model.append(p3)
+        if p3 > 2:
+            p3s_model_obs.append(p3)
+        else:
+            for n in range(1000):
+                p3obs_p = np.abs(p3 / (1 - n * p3))
+                p3obs_n = np.abs(p3 / (1 - (-n) * p3))
+                if p3obs_p > 2:
+                    p3obs = p3obs_p
+                    #print(edots_high[i], n)
+                    break
+                if p3obs_n > 2:
+                    p3obs = p3obs_n
+                    #print(edots_high[i], n)
+                    break
+            p3s_model_obs.append(p3obs)
+
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+
+    sc = pl.scatter(np.array(edots), np.array(p3s), c="tab:blue", s=5, alpha=0.7, label="obs. data")
+    #sc = pl.scatter(np.array(edots_fit), np.array(p3s_fit), c="tab:green", s=5, alpha=0.7)
+    sc = pl.scatter(np.array(edots_model), np.array(p3s_model), c="tab:grey", s=5, alpha=0.7)
+    sc = pl.scatter(np.array(edots_model), np.array(p3s_model_obs), c="tab:red", s=5, alpha=0.7, label="modeled data")
+    #sc = pl.scatter(np.array(edots_high), np.array(p3s_high), c="tab:pink", s=5)
+    pl.plot(x, y, lw=3, alpha=0.7, color="C1") # fitted dependence
+    #pl.plot(xline, yline, lw=2, alpha=0.7, color="C0") # works
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.1, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/synthetic_p3_edot.pdf"
     print(filename)
     pl.savefig(filename)
     #pl.show()
