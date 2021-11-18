@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as pl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.stats import ttest_1samp, ks_2samp
 
 from modules.functions import least_sq
+import modules.data as da
 
 def test_plot(data):
     pl.figure()
@@ -220,8 +222,10 @@ def p3_edot3(datas, labels):
         #pl.clim([0,70])
     pl.legend()
     pl.loglog()
+    #pl.semilogx()
     yl = pl.ylim()
     pl.ylim([0.7, yl[1]])
+    #pl.ylim([0.7, 50])
     pl.xlabel("$\dot{E}$ (ergs/s)")
     pl.ylabel(r"$P_3$ in $P$")
     filename = "output/p3_edot3.pdf"
@@ -711,7 +715,7 @@ def p3_edotp(datas, labels):
     #pl.show()
 
 
-def generate_p3_edot(datas, labels, edot_min=3e30, edot_max=2e31): # 1e27, 1e30, 3e30
+def generate_p3_edot(datas, labels, edot_min=5e30, edot_max=2e31, fmod=""): # 3e30-2e31, 5e30-2e31
     # data
     p3s = []
     ep3s = []
@@ -743,7 +747,7 @@ def generate_p3_edot(datas, labels, edot_min=3e30, edot_max=2e31): # 1e27, 1e30,
     fun = lambda v, x: v[0] * x + v[1]
     v0 = [-0.6, 20]
     x, y, v = least_sq(np.log10(np.array(edots_fit)), np.log10(np.array(p3s_fit)), fun, v0, xmax=None)
-    sigma = np.std(np.log10(np.array(p3s_fit))) #/ 2 # TODO this is wrong you lazy bastard
+    sigma = np.std(np.log10(np.array(p3s_fit))) #/ 2 # TODO this is wrong? you lazy bastard
     print(v)
     x = 10 ** x
     y = 10 ** y
@@ -776,7 +780,6 @@ def generate_p3_edot(datas, labels, edot_min=3e30, edot_max=2e31): # 1e27, 1e30,
     p3s_model = []
     p3s_model_obs = []
     edots_model = []
-    ps_model = []
 
     for i,edot in enumerate(edots_high):
         edot_lin = np.log10(edot)
@@ -800,32 +803,168 @@ def generate_p3_edot(datas, labels, edot_min=3e30, edot_max=2e31): # 1e27, 1e30,
                     break
             p3s_model_obs.append(p3obs)
 
-
-    pl.rc("font", size=12)
+    pl.rc("font", size=8)
     pl.rc("axes", linewidth=0.5)
     pl.rc("lines", linewidth=0.5)
 
     cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
     colors = ["tab:red", "tab:blue", "tab:green"]
     #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+    size = 2
+    al = 1.0
 
-    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
-    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    #fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    fig = pl.figure(figsize=(3.149606, 1.946563744))  # 8 cm x  cm # golden ratio
+    # pl.minorticks_on() # does not work
+    pl.subplots_adjust(left=0.19, bottom=0.215, right=0.99, top=0.99)
 
-    sc = pl.scatter(np.array(edots), np.array(p3s), c="tab:blue", s=5, alpha=0.7, label="obs. data")
+    sc = pl.scatter(np.array(edots), np.array(p3s), c="tab:blue", s=size, alpha=al, label="obs. data", ec="none")
     #sc = pl.scatter(np.array(edots_fit), np.array(p3s_fit), c="tab:green", s=5, alpha=0.7)
-    sc = pl.scatter(np.array(edots_model), np.array(p3s_model), c="tab:grey", s=5, alpha=0.7)
-    sc = pl.scatter(np.array(edots_model), np.array(p3s_model_obs), c="tab:red", s=5, alpha=0.7, label="modeled data")
+    sc = pl.scatter(np.array(edots_model), np.array(p3s_model), c="tab:grey", s=size, alpha=al, ec="none")
+    sc = pl.scatter(np.array(edots_model), np.array(p3s_model_obs), c="tab:red", s=size, alpha=al, label="modeled data", ec="none")
+    #print(np.min(edots))
     #sc = pl.scatter(np.array(edots_high), np.array(p3s_high), c="tab:pink", s=5)
-    pl.plot(x, y, lw=3, alpha=0.7, color="C1") # fitted dependence
+    pl.plot(x, y, lw=1, alpha=0.7, color="C1") # fitted dependence
     #pl.plot(xline, yline, lw=2, alpha=0.7, color="C0") # works
-    pl.legend()
+    pl.legend(fontsize=5,loc='lower left')
     pl.loglog()
     yl = pl.ylim()
-    pl.ylim([0.1, yl[1]])
+    #pl.ylim([0.007, yl[1]])
+    pl.axvline(x=edot_min, c="black", lw=0.3, ls="--")
+    pl.axvline(x=edot_max, c="black", lw=0.3, ls="--")
+    pl.ylim([0.001, 7e2])
     pl.xlabel("$\dot{E}$ (ergs/s)")
     pl.ylabel(r"$P_3$ in $P$")
-    filename = "output/synthetic_p3_edot.pdf"
+    filename = "output/synthetic_p3_edot{}.pdf".format(fmod)
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def generate_p3_edot2(data, edot_min=5e30, edot_max=2e31, fmod=""): # 3e30-2e31, 5e30-2e31
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+
+    # to fit linear dependence
+    p3s_fit = []
+    ep3s_fit = []
+    edots_fit = []
+
+    for i,edot in enumerate(edots):
+        if (edot >= edot_min) and (edot <= edot_max):
+            p3s_fit.append(p3s[i])
+            ep3s_fit.append(ep3s[i])
+            edots_fit.append(edots[i])
+
+    # fitting linear dependence
+    fun = lambda v, x: v[0] * x + v[1]
+    v0 = [-0.6, 20]
+    x, y, v = least_sq(np.log10(np.array(edots_fit)), np.log10(np.array(p3s_fit)), fun, v0, xmax=None)
+    sigma = np.std(np.log10(np.array(p3s_fit))) #/ 2 # TODO this is wrong or not.  You lazy bastard
+    print("Fitted parameters: ", v)
+    x = 10 ** x
+    y = 10 ** y
+
+
+    p3pred = lambda x: x ** v[0] * 10 ** v[1]
+    xline = np.logspace(28, 37, num=100)
+    yline = p3pred(xline)
+
+    # to be modeled only high or all?
+    all = True
+    p3s_high = []
+    ep3s_high = []
+    edots_high = []
+    for i,edot in enumerate(edots):
+        if all is True:
+            p3s_high.append(p3s[i])
+            ep3s_high.append(ep3s[i])
+            edots_high.append(edots[i])
+        else:
+            if (edot > edot_max):
+                p3s_high.append(p3s[i])
+                ep3s_high.append(ep3s[i])
+                edots_high.append(edots[i])
+
+    # generating data
+    p3s_model = []
+    p3s_model_obs = []
+    edots_model = []
+
+    for i,edot in enumerate(edots_high):
+        edot_lin = np.log10(edot)
+        p3_lin = np.random.normal(fun(v, edot_lin), sigma)
+        p3 = 10 ** p3_lin
+        edots_model.append(edots_high[i])
+        p3s_model.append(p3)
+        if p3 > 2:
+            p3s_model_obs.append(p3)
+        else:
+            for n in range(1000):
+                p3obs_p = np.abs(p3 / (1 - n * p3))
+                p3obs_n = np.abs(p3 / (1 - (-n) * p3))
+                if p3obs_p > 2:
+                    p3obs = p3obs_p
+                    #print(edots_high[i], n)
+                    break
+                if p3obs_n > 2:
+                    p3obs = p3obs_n
+                    #print(edots_high[i], n)
+                    break
+            p3s_model_obs.append(p3obs)
+
+    #divs = np.abs(np.log10(p3s) - np.log10(p3s_model))
+    #divergence = np.sum(divs)
+
+    divs = []
+    for i in range(100):
+        ge = da.generate_p3_edot(p3s, ep3s, edots, edot_min, edot_max)
+        div = ge[4]
+        divs.append(div)
+
+    print("Divergence {}: {} +/- {}".format(fmod, np.mean(divs), np.std(divs)))
+    #return
+
+    pl.rc("font", size=7)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+    size = 2
+    al = 1.0
+
+    #fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    fig = pl.figure(figsize=(3.149606, 1.946563744))  # 8 cm x  cm # golden ratio
+    # pl.minorticks_on() # does not work
+    pl.subplots_adjust(left=0.19, bottom=0.215, right=0.99, top=0.99)
+
+    sc = pl.scatter(np.array(edots), np.array(p3s), c="tab:blue", s=size, alpha=al, label="obs. data", ec="none")
+    #sc = pl.scatter(np.array(edots_fit), np.array(p3s_fit), c="tab:green", s=5, alpha=0.7)
+    sc = pl.scatter(np.array(edots_model), np.array(p3s_model), c="tab:grey", s=size, alpha=al, ec="none")
+    sc = pl.scatter(np.array(edots_model), np.array(p3s_model_obs), c="tab:red", s=size, alpha=al, label="modeled data", ec="none")
+    #print(np.min(edots))
+    #sc = pl.scatter(np.array(edots_high), np.array(p3s_high), c="tab:pink", s=5)
+    pl.plot(x, y, lw=1, alpha=0.7, color="C1") # fitted dependence
+    pl.plot(xline, yline, lw=2, alpha=0.3, color="C0") # works
+    pl.legend(fontsize=5,loc='lower left')
+    pl.loglog()
+    yl = pl.ylim()
+    #pl.ylim([0.007, yl[1]])
+    pl.axvline(x=edot_min, c="black", lw=0.3, ls="--")
+    pl.axvline(x=edot_max, c="black", lw=0.3, ls="--")
+    pl.ylim([7e-3, 7e2])
+    #pl.ylim([0.7, 5e2])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/synthetic_p3_edot2{}.pdf".format(fmod)
     print(filename)
     pl.savefig(filename)
     #pl.show()

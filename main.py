@@ -70,10 +70,25 @@ def plot_edotp():
     pl.p3_edotp([d1, d2, d3], ["positive", "negative", "mixed"])
 
 
-def generate_edot():
+def generate_edot(edot_min=5e30, edot_max=2e31, fmod=""):
+    """
+        OBSOLETE. Please use check find_bestp3edot.
+    """
     d1, d2, d3 = da.positive_negative_mixed3()
-    pl.generate_p3_edot([d1, d2, d3], ["positive", "negative", "mixed"])
+    pl.generate_p3_edot([d1, d2, d3], ["positive", "negative", "mixed"], edot_min=edot_min, edot_max=edot_max, fmod=fmod)
 
+
+def generate_edot2(edot_min=5e30, edot_max=2e31, fmod=""):
+    """
+        OBSOLETE. Please use check find_bestp3edot.
+    """
+    # for dominant P3 features only
+    d1 = da.p3dominant_driftonly()
+    pl.generate_p3_edot2(d1, edot_min=edot_min, edot_max=edot_max, fmod=fmod)
+
+def find_bestp3edot():
+    d1 = da.p3dominant_driftonly()
+    da.find_bestp3edot(d1)
 
 
 def main():
@@ -90,7 +105,12 @@ def main():
     #plot_edot_sec()
     #plot_p3mean_p()
     #plot_edotp()
-    generate_edot()
+    #generate_edot(edot_min=5e30, edot_max=2e31, fmod="_1")
+    #generate_edot2(edot_min=5e30, edot_max=2e31, fmod="_1")
+    #generate_edot2(edot_min=3e30, edot_max=2e31, fmod="_2")
+    #da.table_1() # not used
+    #da.table_2()
+    find_bestp3edot()
     print("Bye")
 
 

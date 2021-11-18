@@ -16,3 +16,6 @@ def least_sq(x, y, fun, v0, size=200, xmax=None):
     x_new = np.linspace(x_0, xmax, size)
     y_new = fun(v, x_new)
     return x_new, y_new, v
+
+
+# odr
