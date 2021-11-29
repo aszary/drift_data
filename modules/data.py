@@ -983,11 +983,20 @@ def calculate_divergance(data1, data2, xdata, err, sample=30):
     return pvals, xds, pvals_bin, xpvals_bin
 
 
-def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=10, sig_thresh_proc=10):
+def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_thresh_proc=10):
     # TODO repeat not implemented yet
     p3s = np.array(data[0])
     ep3s = np.array(data[1])
     edots = np.array(data[9])
+
+    """
+    # YES this is the JiuJitsu way :D
+    f = open("data/p3_edot.txt", "w")
+    for i in range(len(p3s)):
+        f.write("{} {} {}\n".format(p3s[i], ep3s[i], edots[i]))
+    f.close()
+    return
+    """
 
     p3s10 = np.log10(p3s)
     ep3s10 = np.log10(ep3s)
@@ -1012,7 +1021,7 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=10, sig_t
     two10 = np.log10(2)
     t_tests = np.empty([size, size, repeat])
     t_test = np.empty([size, size])
-    #t_test.fill(np.nan)
+    t_test.fill(np.nan)
     acc_min = 1e50
     acc_ind = None
 
@@ -1020,101 +1029,107 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=10, sig_t
 
     for i in range(size):
         for j in range(size):
-            a = a_[j]
-            b = ys[i] - a * X
-            p3fun = lambda x: a * x + b
-            xline = np.linspace(28, 37, num=100)
-            yline = p3fun(xline)
+            for ii in range(repeat):
+                a = a_[j]
+                b = ys[i] - a * X
+                p3fun = lambda x: a * x + b
+                xline = np.linspace(28, 37, num=100)
+                yline = p3fun(xline)
 
-            """
-            # estimate sigma? not needed?
-            for k in range(len(edots10)):
-                p3_sigma[k] = p3fun(edots10[k])
-                sigs[k] = p3_sigma[k] - p3s10[k]
-                if sigs[k] > 0:
-                    sig_pos += 1
+                """
+                # estimate sigma? not needed?
+                for k in range(len(edots10)):
+                    p3_sigma[k] = p3fun(edots10[k])
+                    sigs[k] = p3_sigma[k] - p3s10[k]
+                    if sigs[k] > 0:
+                        sig_pos += 1
+                    else:
+                        sig_neg += 1
+                if sig_pos < sig_thresh or sig_neg < sig_thresh:
+                    sigma = SIGMA
                 else:
-                    sig_neg += 1
-            if sig_pos < sig_thresh or sig_neg < sig_thresh:
+                    sigma = np.min([np.abs(np.min(sigs)), np.max(sigs)]) / 3 # TODO improve that!
+                sig_pos, sig_neg = 0, 0
+                """
+
                 sigma = SIGMA
-            else:
-                sigma = np.min([np.abs(np.min(sigs)), np.max(sigs)]) / 3 # TODO improve that!
-            sig_pos, sig_neg = 0, 0
-            """
 
-            sigma = SIGMA
-
-            # model data
-            p3s_notobs = []
-            edots_notobs = []
-            skip_a = False
-            for k in range(len(edots10)):
-                p3 = np.random.normal(p3fun(edots10[k]), sigma)
-                if p3 >= two10:
-                    p3s_model[k] = p3
-                    edots_model[k] = edots10[k]
-                else:
-                    p3s_notobs.append(p3)
-                    edots_notobs.append(edots10[k])
-                    p3obs = None
-                    for n in range(100): # increas?
-                        p3nolog = 10 ** p3
-                        p3obs_p = np.abs(p3nolog / (1 - n * p3nolog))
-                        p3obs_n = np.abs(p3nolog / (1 - (-n) * p3nolog))
-                        if p3obs_p > 2:
-                            p3obs = p3obs_p
-                            #print(edots_high[i], n)
-                            break
-                        if p3obs_n > 2:
-                            p3obs = p3obs_n
-                            #print(edots_high[i], n)
-                            break
-                    if p3obs != None:
-                        p3s_model[k] = np.log10(p3obs) # it is ok
+                # model data
+                p3s_notobs = []
+                edots_notobs = []
+                skip_a = False
+                for k in range(len(edots10)):
+                    p3 = np.random.normal(p3fun(edots10[k]), sigma)
+                    if p3 >= two10:
+                        p3s_model[k] = p3
                         edots_model[k] = edots10[k]
                     else:
-                        #skip_a = True
+                        p3s_notobs.append(p3)
+                        edots_notobs.append(edots10[k])
+                        p3obs = None
+                        for n in range(1000):
+                            p3nolog = 10 ** p3
+                            p3obs_p = np.abs(p3nolog / (1 - n * p3nolog))
+                            p3obs_n = np.abs(p3nolog / (1 - (-n) * p3nolog))
+                            if p3obs_p > 2:
+                                p3obs = p3obs_p
+                                #print(edots_high[i], n)
+                                break
+                            if p3obs_n > 2:
+                                p3obs = p3obs_n
+                                #print(edots_high[i], n)
+                                break
+                        if p3obs != None:
+                            p3s_model[k] = np.log10(p3obs) # it is ok
+                            edots_model[k] = edots10[k]
+                        else:
+                            skip_a = True
+                            t_tests[i, j, ii] = 10
+                            pass
+                if a > 0:
+                    skip_a = True # TODO HERE!!!
+                    t_tests[i, j, ii] = 10
+                if skip_a is False:
+                    pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (this is fine..?)
+                    acc = len([pv for pv in pvals if pv < 0.05])
+                    t_tests[i, j, ii] = acc
+                    if acc < acc_min:
+                        acc_min = acc
+                        acc_ind = (i, j)
+                        p3s_best = np.copy(p3s_model)
+                        edots_best = np.copy(edots_model)
+                        p3s_notobs_best = np.copy(p3s_notobs)
+                        edots_notobs_best = np.copy(edots_notobs)
+                        xline_best = xline
+                        yline_best = yline
+                        pvals_best = pvals
+                        xpvals_best = xpvals
+                        pvals_binbest = pvals_bin
+                        xpvals_binbest = xpvals_bin
+                plot = False
+                if plot is True:
+                    pl.figure(figsize=(13.149606, 13.946563744))
+                    pl.subplot(2,1,1)
+                    pl.minorticks_on()
+                    pl.scatter(edots10, p3s10)
+                    pl.scatter(edots_model, p3s_model)
+                    pl.scatter(edots_notobs, p3s_notobs)
+                    pl.plot(xline, yline)
+                    xlims = pl.xlim()
+                    pl.subplot(2,1,2)
+                    pl.minorticks_on()
+                    #pl.scatter(xpvals, pvals)
+                    try:
+                        pl.plot(xpvals_bin, pvals_bin, lw=2, c="C1")
+                    except:
                         pass
-            #if a > 0: skip_a = True # TODO HERE!!!
-            if skip_a is False:
-                pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (this is fine..?)
-                acc = len([pv for pv in pvals if pv < 0.05])
-                t_test[i, j] = acc
-                if acc < acc_min:
-                    acc_min = acc
-                    acc_ind = (i, j)
-                    p3s_best = np.copy(p3s_model)
-                    edots_best = np.copy(edots_model)
-                    p3s_notobs_best = np.copy(p3s_notobs)
-                    edots_notobs_best = np.copy(edots_notobs)
-                    xline_best = xline
-                    yline_best = yline
-                    pvals_best = pvals
-                    xpvals_best = xpvals
-                    pvals_binbest = pvals_bin
-                    xpvals_binbest = xpvals_bin
-            plot = False
-            if plot is True:
-                pl.figure(figsize=(13.149606, 13.946563744))
-                pl.subplot(2,1,1)
-                pl.minorticks_on()
-                pl.scatter(edots10, p3s10)
-                pl.scatter(edots_model, p3s_model)
-                pl.scatter(edots_notobs, p3s_notobs)
-                pl.plot(xline, yline)
-                xlims = pl.xlim()
-                pl.subplot(2,1,2)
-                pl.minorticks_on()
-                #pl.scatter(xpvals, pvals)
-                try:
-                    pl.plot(xpvals_bin, pvals_bin, lw=2, c="C1")
-                except:
-                    pass
-                pl.axhline(y=0.05, c="C2", ls="--")
-                pl.xlim(xlims[0], xlims[1])
-                #pl.scatter(edots10, sigs, c="green")
-                pl.show()
-            print(i, j)
+                    pl.axhline(y=0.05, c="C2", ls="--")
+                    pl.xlim(xlims[0], xlims[1])
+                    #pl.scatter(edots10, sigs, c="green")
+                    pl.show()
+                print(i, j, ii)
+            #print(t_tests[i, j])
+            t_test[i, j] = np.min(t_tests[i, j]) # OK?
 
     #s = 0.7
 
