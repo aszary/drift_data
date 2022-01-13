@@ -90,6 +90,55 @@ def find_bestp3edot():
     d1 = da.p3dominant_driftonly()
     da.find_bestp3edot(d1)
 
+def plot_edot4():
+    d1 = da.p3dominant_driftonly()
+    pl.p3_edot4(d1)
+
+
+def plot_edot_driftp3only():
+    d1 = da.p3dominant_driftonly()
+    d2 = da.p3dominant_p3only()
+    pl.p3_edot_driftp3only(d1, d2)
+
+
+def plot_gallery():
+    d1 = da.p3dominant_driftonly()
+    d2 = da.p3dominant_p3only()
+    pl.p3_age(d1, d2)
+    pl.p3_bsurf(d1, d2)
+    pl.p3_blc(d1, d2)
+    pl.p3_s1400(d1, d2)
+    pl.p3_w50(d1, d2)
+
+
+def plot_p3tests():
+    d1 = da.p3dominant_driftonly()
+    d2 = da.p3dominant_p3only()
+    pl.p3_tests(d1, d2)
+
+
+def info():
+    d1 = da.p3dominant_driftonly()
+    edots = list(d1[9])
+    names = list(d1[10])
+    low = []
+    high = []
+    #thresh = 10**32.5
+    thresh = 5e32
+    for i,edot in enumerate(edots):
+        if edot > thresh:
+            high.append(names[i])
+        else:
+            low.append(names[i])
+    print("Number of drifters with high-Edot:", len(high))
+    print("Number of drifters with low-Edot:", len(low))
+
+def plot_p3edotage_fraction():
+    d1 = da.p3dominant_driftonly()
+    d2 = da.p3dominant_p3only()
+    dr, nodr = da.drift_nodrift() # drift includes p3only
+    pl.p3_edot_fraction(d1, d2, dr, nodr)
+    pl.p3_age_fraction(d1, d2, dr, nodr)
 
 def main():
     #test()
@@ -110,7 +159,14 @@ def main():
     #generate_edot2(edot_min=3e30, edot_max=2e31, fmod="_2")
     #da.table_1() # not used
     #da.table_2()
-    find_bestp3edot()
+    #find_bestp3edot()
+    #plot_edot4()
+    #plot_edot_driftp3only()
+    #plot_gallery()
+    #plot_p3tests()
+    #info()
+    plot_p3edotage_fraction()
+
     print("Bye")
 
 

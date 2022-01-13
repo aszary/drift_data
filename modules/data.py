@@ -583,7 +583,12 @@ def p3dominant_driftonly(filename="data/stats.csv"):
     jnames = []
     p2as = []
     p2aserr = []
-
+    age = []
+    bsurf = []
+    blc = []
+    s1400 = []
+    w50 = []
+    w10 = []
 
     st = Table.read(filename, format='ascii', header_start=0, data_start=0)
     st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)]
@@ -618,6 +623,107 @@ def p3dominant_driftonly(filename="data/stats.csv"):
             p3wserr.append(float(row[feature + ': P3_stddev_error']))
             edots.append(row['Edot [ergs/s]'])
             jnames.append(row["JName_paper"])
+            age.append(float(row["Age [yr]"]))
+            bsurf.append(float(row["Bsurf [G]"])) # float important!
+            blc.append(float(row["Blc [G]"])) # float important!
+            try:
+                s1400.append(float(row["S1400 [mJy]"])) # float important!
+            except:
+                s1400.append(1)
+            try:
+                w50.append(float(row["W50 [ms]"])) # float important!
+            except:
+                w50.append(1)
+            try:
+                w10.append(float(row["W10 [ms]"])) # float important!
+            except:
+                w10.append(1) # float important!
+
+            # P2 assymetry
+            comps = row["{} 2dfs nrs".format(mip)].split(",") # get component numbers
+            p2a_all = []
+            p2ae_all = []
+            # TODO change to the dominant feature
+            for c in comps:
+                p2a_all.append(float(row["C{} Power".format(c)]))
+                p2ae_all.append(float(row["C{} PowerErr".format(c)]))
+            ind = np.argmax(p2a_all)
+            p2as.append(p2a_all[ind])
+            p2aserr.append(p2ae_all[ind])
+
+    #print(st)
+    return p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames, age, bsurf, blc, s1400, w50, w10
+
+
+def p3dominant_p3only(filename="data/stats.csv"):
+    p3s = []
+    p3serr = []
+    p3ws = []
+    p3wserr = []
+    p2s = []
+    p2serr_p = []
+    p2serr_m = []
+    edots = []
+    jnames = []
+    p2as = []
+    p2aserr = []
+    age = []
+    bsurf = []
+    blc = []
+    s1400 = []
+    w50 = []
+    w10 = []
+
+
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+    st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)]
+    st["Edot [ergs/s]"] = st["Edot [ergs/s]"].astype(float)
+    for row in st:
+        compn = row['PulsarDominantP3Feature']
+        mip, comp = compn.split()
+        dname = mip+'dominantDriftFeature_' + comp
+        pname = mip+'dominantP3Feature_' + comp
+        # if DriftFeature and P3feature both defined, choose the P3 feature; if only DriftFeature or P3feature, take this.
+        # kind of strange, but works
+        if float(row[dname]) > 0 and float(row[pname])>0:
+            fn = 'F'+str(row[pname])
+        elif float(row[dname]) > 0:
+            fn = 'F'+str(row[dname])
+        elif float(row[pname]) > 0:
+            fn = 'F'+str(row[pname])
+        feature = mip+' '+comp+' '+fn
+        if row[feature.replace(" ", "_")] == "P3only":
+            p3s.append(float(row[feature + ': P3_value']))
+            p3serr.append(float(row[feature + ': P3_error']))
+            # P2 the lowest value
+            p2, p2ep, p2em = get_smallest_p2(row)
+            p2s.append(p2)
+            p2serr_p.append(p2ep)
+            p2serr_m.append(p2em)
+            # p2 for the dominant feature (not the lowest value)
+            #p2s.append(float(row[feature + ': P2_value']))
+            #p2serr_p.append(float(row[feature + ': P2_error_plus']))
+            #p2serr_m.append(float(row[feature + ': P2_error_minus']))
+            p3ws.append(float(row[feature + ': P3_stddev_value']))
+            p3wserr.append(float(row[feature + ': P3_stddev_error']))
+            edots.append(row['Edot [ergs/s]'])
+            jnames.append(row["JName_paper"])
+            age.append(float(row["Age [yr]"])) # float important!
+            bsurf.append(float(row["Bsurf [G]"])) # float important!
+            blc.append(float(row["Blc [G]"])) # float important!
+            try:
+                s1400.append(float(row["S1400 [mJy]"])) # float important!
+            except:
+                s1400.append(1) # float important!
+            try:
+                w50.append(float(row["W50 [ms]"])) # float important!
+            except:
+                w50.append(1)
+            try:
+                w10.append(float(row["W10 [ms]"])) # float important!
+            except:
+                w10.append(1)
+            #print(row["JName_paper"], row['Edot [ergs/s]'], row["Age [yr]"])
             # P2 assymetry
             comps = row["{} 2dfs nrs".format(mip)].split(",") # get component numbers
             p2a_all = []
@@ -632,7 +738,8 @@ def p3dominant_driftonly(filename="data/stats.csv"):
 
 
     #print(st)
-    return p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames
+    return p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames, age, bsurf, blc, s1400, w50, w10
+
 
 
 
@@ -1162,3 +1269,15 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_th
     pl.xlabel("y")
     pl.ylabel("a")
     pl.show()
+
+
+
+def drift_nodrift(filename="data/stats.csv"):
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+    dr = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)]
+    nodr = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==True)]
+    dr["Edot [ergs/s]"] = dr["Edot [ergs/s]"].astype(float)
+    nodr["Edot [ergs/s]"] = nodr["Edot [ergs/s]"].astype(float)
+    dr["Age [yr]"] = dr["Age [yr]"].astype(float)
+    nodr["Age [yr]"] = nodr["Age [yr]"].astype(float)
+    return dr, nodr

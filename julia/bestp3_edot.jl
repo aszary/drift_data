@@ -78,8 +78,8 @@ module Simulation
     end
 
 
-    function best_p3edot(;y=(0.05, 30), a=(-1.5, 1.5), size_=100, repeat=100, filename="../data/p3_edot.txt")
-        p3s, ep3s, edots = read_data(filename, edot_max=5e32)
+    function best_p3edot(;y=(0.05, 30), a=(-1.5, 1.5), size_=20, repeat=100, filename="../data/p3_edot.txt")
+        p3s, ep3s, edots = read_data(filename, edot_max=3e31)
         ys = range(log10(y[1]), log10(y[2]), length=size_)
         as = range(a[1], a[2], length=size_)
         x_th = log10(1e32)

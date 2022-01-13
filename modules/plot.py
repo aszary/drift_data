@@ -968,3 +968,673 @@ def generate_p3_edot2(data, edot_min=5e30, edot_max=2e31, fmod=""): # 3e30-2e31,
     print(filename)
     pl.savefig(filename)
     #pl.show()
+
+
+def p3_edot4(data):
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    sc = pl.scatter(edots, p3s, c=colors[0], s=5, zorder=1)
+    pl.errorbar(edots, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2, label="dominant feature (drift only)")
+    pl.legend()
+    pl.loglog()
+    #pl.semilogx()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    #pl.ylim([0.7, 50])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_edot4.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_edot_driftp3only(data, data2):
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+    ages = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+    ages += list(data[11])
+
+    p3s2 = []
+    ep3s2 = []
+    edots2 = []
+    ages2 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    edots2 += list(data2[9])
+    ages2 += list(data2[11])
+
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    sc = pl.scatter(edots, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    pl.errorbar(edots, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    sc = pl.scatter(edots2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    pl.errorbar(edots2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_edot_driftp3only.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+
+def p3_age(data, data2):
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+    ages = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+    ages += list(data[11])
+
+    p3s2 = []
+    ep3s2 = []
+    edots2 = []
+    ages2 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    edots2 += list(data2[9])
+    ages2 += list(data2[11])
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    sc = pl.scatter(ages, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    pl.errorbar(ages, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    sc = pl.scatter(ages2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    pl.errorbar(ages2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel("Age (yr)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_age.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_bsurf(data, data2):
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+    ages = []
+    bsurf = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+    ages += list(data[11])
+    bsurf += list(data[12])
+
+    p3s2 = []
+    ep3s2 = []
+    edots2 = []
+    ages2 = []
+    bsurf2 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    edots2 += list(data2[9])
+    ages2 += list(data2[11])
+    bsurf2 += list(data2[12])
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    sc = pl.scatter(bsurf, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    pl.errorbar(bsurf, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    sc = pl.scatter(bsurf2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    pl.errorbar(bsurf2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel(r"$B_{\rm s}$ (G)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_bsurf.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_blc(data, data2):
+    # data
+    p3s = []
+    ep3s = []
+    blc = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    blc += list(data[13])
+
+    p3s2 = []
+    ep3s2 = []
+    blc2 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    blc2 += list(data2[13])
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    sc = pl.scatter(blc, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    pl.errorbar(blc, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    sc = pl.scatter(blc2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    pl.errorbar(blc2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel(r"$B_{\rm lc}$ (G)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_blc.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_s1400(data, data2):
+    # data
+    p3s = []
+    ep3s = []
+    s1400 = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    s1400 += list(data[14])
+
+    p3s2 = []
+    ep3s2 = []
+    s14002 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    s14002 += list(data2[14])
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    sc = pl.scatter(s1400, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    pl.errorbar(s1400, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    sc = pl.scatter(s14002, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    pl.errorbar(s14002, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel(r"$S1400$ (mJy)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_s1400.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_w50(data, data2):
+    # data
+    p3s = []
+    ep3s = []
+    w50 = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    w50 += list(data[15])
+
+    p3s2 = []
+    ep3s2 = []
+    w502 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    w502 += list(data2[15])
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    sc = pl.scatter(w50, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    pl.errorbar(w50, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    sc = pl.scatter(w502, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    pl.errorbar(w502, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel(r"$W50$ (ms)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_w50.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_tests(data, data2):
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+    ages = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+    ages += list(data[11])
+
+    p3s2 = []
+    ep3s2 = []
+    edots2 = []
+    ages2 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    edots2 += list(data2[9])
+    ages2 += list(data2[11])
+
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    #"""
+    sc = pl.scatter(edots, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    pl.errorbar(edots, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    sc = pl.scatter(edots2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    pl.errorbar(edots2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+    #"""
+
+    #sc = pl.scatter(ages, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    #pl.errorbar(ages, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    #sc = pl.scatter(ages2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    #pl.errorbar(ages2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    #pl.xlabel("Age (yr)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_tests.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+def create_hist(dr, nodr, bins, xval="Edot [ergs/s]"):
+    # sort tables
+    dr.sort(xval)
+    nodr.sort(xval)
+    mi1 = dr[0][xval]
+    ma1 = dr[-1][xval]
+    mi2 = nodr[0][xval]
+    ma2 = nodr[-1][xval]
+    min = np.min([mi1, mi2])
+    max = np.max([ma1, ma2])
+
+    ebins = np.logspace(np.log10(min), np.log10(max), num=bins)
+    hi1 = np.histogram(dr[xval], bins=ebins)[0]
+    hi2 = np.histogram(nodr[xval], bins=ebins)[0]
+    hisum = hi1 + hi2
+    hifr = hi1 / hisum
+    hifrac = []
+    for hi in hifr:
+        hifrac.append(hi)
+        hifrac.append(hi)
+    hibins = []
+    for i in range(len(ebins) - 1):
+        hibins.append(ebins[i])
+        hibins.append(ebins[i+1])
+    return hibins, hifrac
+
+
+def create_scatter(dr, bins, xval="Edot [ergs/s]", val="Period [s]"):
+    # sort tables
+    dr.sort(xval)
+    #nodr.sort("Edot [ergs/s]")
+    min = dr[0][xval] # mi1
+    max = dr[-1][xval] # ma2
+    #mi2 = nodr[0]["Edot [ergs/s]"]
+    #ma2 = nodr[-1]["Edot [ergs/s]"]
+    #min = np.min([mi1, mi2])
+    #max = np.max([ma1, ma2])
+
+    ebins = np.logspace(np.log10(min), np.log10(max), num=bins)
+    hibins = []
+    for i in range(len(ebins) - 1):
+        hibins.append(ebins[i])
+        hibins.append(ebins[i+1])
+    hi = np.zeros(len(hibins))
+
+    vals = [[] for i in range(len(ebins) - 1)]
+
+    for row in dr:
+        try:
+            v = float(row[val])
+        except:
+            v = 0
+        edot = row[xval]
+        for i in range(len(ebins) - 1):
+            if edot >= ebins[i] and edot <= ebins[i+1]:
+                vals[i].append(v)
+                break
+
+    means = [np.mean(v) for v in vals]
+    stds = [np.std(v) for v in vals]
+    xs = []
+    # get xs for means
+    for i in range(len(ebins) - 1):
+        ed = 10 ** (np.log10(ebins[i]) + (np.log10(ebins[i+1]) - np.log10(ebins[i])) / 2)
+        xs.append(ed)
+
+    # calculate histogram
+    for i in range(int(len(hi) / 2)):
+        hi[2*i] = means[i]
+        hi[2*i + 1] = means[i]
+    errs = np.zeros(len(stds))
+    # standard error
+    for i in range(len(errs)):
+        errs[i] = stds[i] / (len(vals[i]))
+
+    return np.array(hi), np.array(hibins), np.array(means), np.array(errs), np.array(xs)
+
+
+def create_npulsars(dr, bins, xval="Edot [ergs/s]"):
+    # sort tables
+    dr.sort(xval)
+    min = dr[0][xval] # mi1
+    max = dr[-1][xval] # ma2
+
+    ebins = np.logspace(np.log10(min), np.log10(max), num=bins)
+    hibins = []
+    for i in range(len(ebins) - 1):
+        hibins.append(ebins[i])
+        hibins.append(ebins[i+1])
+    hi = np.zeros(len(hibins))
+
+    for row in dr:
+        edot = row[xval]
+        for i in range(len(hibins) - 1):
+            if edot >= hibins[i] and edot <= hibins[i+1]:
+                hi[i] += 1
+                hi[i+1] += 1
+                break
+    return np.array(hi), np.array(hibins)
+
+
+def p3_edot_fraction(data, data2, dr, nodr, bins=15):
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+    ages = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+    ages += list(data[11])
+
+    p3s2 = []
+    ep3s2 = []
+    edots2 = []
+    ages2 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    edots2 += list(data2[9])
+    ages2 += list(data2[11])
+
+    hibins, hifrac = create_hist(dr, nodr, bins)
+    hi1, hib1, me1, err1, xs1 = create_scatter(dr, bins, val="W10 [ms]")# val="W10 [ms]") #val="S1400 [mJy]")
+    #hi2, hib2, me2, err2, xs2 = create_scatter(dr, bins)# val="W50 [ms]") # P
+    hi2, hib2, me2, err2, xs2 = create_scatter(dr, bins, val="SNRclean")
+    hi7, hib7 = create_npulsars(dr, bins)
+
+    # changing period to polar cap radius
+    #hi1 = 150 * np.power(hi1, -0.5)
+    #me1 = 150 * np.power(me1, -0.5)
+    #hi2 = 150 * np.power(hi2, -0.5)
+    #me2 = 150 * np.power(me2, -0.5)
+
+    #std1 = 150 * np.power(std1, -0.5)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.91, top=0.99)
+    sc = pl.scatter(edots, p3s, c=colors[0], s=5, zorder=1, label="drift", alpha=0.7)
+    pl.errorbar(edots, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2, alpha=0.7)
+    sc = pl.scatter(edots2, p3s2, c="C1", s=5, zorder=1, label="P3only", alpha=0.7)
+    pl.errorbar(edots2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2, alpha=0.7)
+
+    #sc = pl.scatter(ages, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    #pl.errorbar(ages, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    #sc = pl.scatter(ages2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    #pl.errorbar(ages2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    #pl.xlabel("Age (yr)")
+    pl.ylabel(r"$P_3$ in $P$")
+    ax = pl.axes()
+
+    ax2 = ax.twinx()
+    ax2.plot(hibins, hifrac, c="C3", lw=2, ls="--", label="fraction")
+    #pl.loglog()
+    pl.ylabel("fraction of drifters")
+    #ax2.set_yticks([])
+    pl.legend(loc="upper center")
+
+    ax3 = ax.twinx()
+    ax3.plot(hib1, hi1, c="tab:green", lw=2, ls="--", label="W10")
+    pl.errorbar(xs1, me1, yerr=err1, c="tab:green", lw=0, marker="o", ms=5, elinewidth=1)
+    #pl.loglog()
+    #pl.ylabel("W10 [ms]")
+    ax3.set_yticks([])
+    pl.legend(loc="lower left")
+
+    ax4 = ax.twinx()
+    #ax4.plot(hib7, hi7, c="tab:grey", lw=2, ls="--", label="N-pulsars")
+    #ax4.plot(hib2, hi2, c="tab:blue", lw=2, ls="--", label="SNR")
+    #pl.errorbar(xs2, me2, yerr=err2, c="tab:blue", lw=0, marker="o", ms=5, elinewidth=1)
+    #pl.loglog()
+    ax4.set_yticks([])
+    #pl.legend(loc="upper left")
+
+    filename = "output/p3_edot_frac.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3_age_fraction(data, data2, dr, nodr, bins=15):
+    # data
+    p3s = []
+    ep3s = []
+    edots = []
+    ages = []
+
+    p3s += list(data[0])
+    ep3s += list(data[1])
+    edots += list(data[9])
+    ages += list(data[11])
+
+    p3s2 = []
+    ep3s2 = []
+    edots2 = []
+    ages2 = []
+
+    p3s2 += list(data2[0])
+    ep3s2 += list(data2[1])
+    edots2 += list(data2[9])
+    ages2 += list(data2[11])
+
+    hibins, hifrac = create_hist(dr, nodr, bins, xval="Age [yr]")
+    hi1, hib1, me1, err1, xs1 = create_scatter(dr, bins, xval="Age [yr]", val="W10 [ms]")# val="W10 [ms]") #val="S1400 [mJy]")
+    #hi2, hib2, me2, err2, xs2 = create_scatter(dr, bins)# val="W50 [ms]") # P
+    hi2, hib2, me2, err2, xs2 = create_scatter(dr, bins, xval="Age [yr]", val="SNRclean")
+    hi7, hib7 = create_npulsars(dr, bins, xval="Age [yr]")
+
+    # changing period to polar cap radius
+    #hi1 = 150 * np.power(hi1, -0.5)
+    #me1 = 150 * np.power(me1, -0.5)
+    #hi2 = 150 * np.power(hi2, -0.5)
+    #me2 = 150 * np.power(me2, -0.5)
+
+    #std1 = 150 * np.power(std1, -0.5)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["C0", "tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.91, top=0.99)
+    sc = pl.scatter(ages, p3s, c=colors[0], s=5, zorder=1, label="drift", alpha=0.7)
+    pl.errorbar(ages, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2, alpha=0.7)
+    sc = pl.scatter(ages2, p3s2, c="C1", s=5, zorder=1, label="P3only", alpha=0.7)
+    pl.errorbar(ages2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2, alpha=0.7)
+
+    #sc = pl.scatter(ages, p3s, c=colors[0], s=5, zorder=1, label="drift")
+    #pl.errorbar(ages, p3s, fmt='none', yerr=ep3s, color=colors[0], zorder=2)
+    #sc = pl.scatter(ages2, p3s2, c="C1", s=5, zorder=1, label="P3only")
+    #pl.errorbar(ages2, p3s2, fmt='none', yerr=ep3s2, color="C1", zorder=2)
+
+    pl.legend()
+    pl.loglog()
+    yl = pl.ylim()
+    pl.ylim([0.7, yl[1]])
+    pl.xlabel("Age (yr)")
+    #pl.xlabel("Age (yr)")
+    pl.ylabel(r"$P_3$ in $P$")
+    ax = pl.axes()
+
+    ax2 = ax.twinx()
+    ax2.plot(hibins, hifrac, c="C3", lw=2, ls="--", label="fraction")
+    #pl.loglog()
+    pl.ylabel("fraction of drifters")
+    #ax2.set_yticks([])
+    pl.legend(loc="upper left")
+
+    ax3 = ax.twinx()
+    ax3.plot(hib1, hi1, c="tab:green", lw=2, ls="--", label="W10")
+    pl.errorbar(xs1, me1, yerr=err1, c="tab:green", lw=0, marker="o", ms=5, elinewidth=1)
+    #pl.loglog()
+    #pl.ylabel("W10 [ms]")
+    ax3.set_yticks([])
+    pl.legend(loc="lower left")
+
+    ax4 = ax.twinx()
+    #ax4.plot(hib7, hi7, c="tab:grey", lw=2, ls="--", label="N-pulsars")
+    #ax4.plot(hib2, hi2, c="tab:blue", lw=2, ls="--", label="SNR")
+    #pl.errorbar(xs2, me2, yerr=err2, c="tab:blue", lw=0, marker="o", ms=5, elinewidth=1)
+    #pl.loglog()
+    ax4.set_yticks([])
+    #pl.legend(loc="upper left")
+
+    filename = "output/p3_age_frac.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
