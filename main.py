@@ -140,6 +140,41 @@ def plot_p3edotage_fraction():
     pl.p3_edot_fraction(d1, d2, dr, nodr)
     pl.p3_age_fraction(d1, d2, dr, nodr)
 
+def high_edot_info():
+    d1 = da.p3dominant_driftonly_edotinfo()
+
+def check_p3edot():
+    d1 = da.p3dominant_driftonly()
+    da.check_p3edot(d1)
+
+def get_headerfile(filename="data/stats.csv", outfile="data/stats.header"):
+    st0 = da.Table.read(filename, format='ascii', header_start=0, data_start=1) # read in the table
+    a = list(st0.colnames)
+    b = list(st0[0])
+    f = open(outfile, "w")
+    for i in range(len(a)):
+        f.write('" {} " :: {}\n'.format(a[i], b[i]))
+    f.close()
+    return
+
+def plot_edot_histograms():
+    d1 = da.p3dominant_driftonly()
+    d2 = da.p3dominant_p3only()
+    dr, nodr = da.drift_nodrift() # drift includes p3only
+    pl.edot_fraction(d1, d2, dr, nodr)
+    pl.edot_fraction_snr(d1, d2, dr, nodr)
+    pl.edot_cpp(d1, d2)
+
+
+def check_p3edot_fun():
+    d1 = da.p3dominant_driftonly()
+    da.check_p3edot_fun(d1)
+
+
+def fit_p3_edot():
+    d1 = da.p3dominant_driftonly()
+    pl.fit_p3_edot(d1)
+
 def main():
     #test()
     #latex_test() # obsolete
@@ -165,7 +200,14 @@ def main():
     #plot_gallery()
     #plot_p3tests()
     #info()
-    plot_p3edotage_fraction()
+    #plot_p3edotage_fraction()
+    #high_edot_info()
+    #check_p3edot()
+    #check_p3edot_fun()
+    #get_headerfile()
+    #plot_edot_histograms()
+    fit_p3_edot()
+
 
     print("Bye")
 

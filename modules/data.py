@@ -6,7 +6,8 @@ from uncertainties import ufloat
 import matplotlib.pyplot as pl
 from scipy.stats import ttest_ind
 
-from modules.functions import least_sq
+from modules.functions import *
+import modules.plot as plo
 
 
 def latexify(table):
@@ -1013,13 +1014,8 @@ def generate_p3_edot(p3s, ep3s, edots, edot_min, edot_max):
             p3s_model_obs.append(p3)
         else:
             for n in range(1000):
-                p3obs_p = np.abs(p3 / (1 - n * p3))
-                p3obs_n = np.abs(p3 / (1 - (-n) * p3))
-                if p3obs_p > 2:
-                    p3obs = p3obs_p
-                    break
-                if p3obs_n > 2:
-                    p3obs = p3obs_n
+                p3obs = np.abs(p3 / (1 - n * p3))
+                if p3obs > 2:
                     break
             p3s_model_obs.append(p3obs)
 
@@ -1069,6 +1065,7 @@ def calculate_divergance(data1, data2, xdata, err, sample=30):
         dd1 = d1[rngs[i]:rngs[i+1]]
         dd2 = d2[rngs[i]:rngs[i+1]]
         p = ttest_ind(dd1, dd2).pvalue
+        #p = ttest_ind(10**np.array(dd1), 10**np.array(dd2)).pvalue
         pvals[i] = p
 
     xds = (rngs + int(sample/2))[:-1]
@@ -1090,7 +1087,7 @@ def calculate_divergance(data1, data2, xdata, err, sample=30):
     return pvals, xds, pvals_bin, xpvals_bin
 
 
-def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_thresh_proc=10):
+def find_bestp3edot(data, y=(-1.5, 1.5), a=(-1.0, 1.0), size=20, repeat=20, sig_thresh_proc=10):
     # TODO repeat not implemented yet
     p3s = np.array(data[0])
     ep3s = np.array(data[1])
@@ -1103,16 +1100,18 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_th
         f.write("{} {} {}\n".format(p3s[i], ep3s[i], edots[i]))
     f.close()
     return
-    """
+    #"""
 
     p3s10 = np.log10(p3s)
     ep3s10 = np.log10(ep3s)
     edots10 = np.log10(edots)
 
+    p3s10_rand = np.empty(len(p3s))
+
     sig_thresh = int(len(edots) * sig_thresh_proc / 100)
 
     a_ = np.linspace(a[0], a[1], num=size)
-    ys = np.linspace(np.log10(y[0]), np.log10(y[1]), num=size)
+    ys = np.linspace(y[0], y[1], num=size)
     X = np.log10(1e32)
 
     edots_model = np.empty(len(edots))
@@ -1142,7 +1141,6 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_th
                 p3fun = lambda x: a * x + b
                 xline = np.linspace(28, 37, num=100)
                 yline = p3fun(xline)
-
                 """
                 # estimate sigma? not needed?
                 for k in range(len(edots10)):
@@ -1158,9 +1156,7 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_th
                     sigma = np.min([np.abs(np.min(sigs)), np.max(sigs)]) / 3 # TODO improve that!
                 sig_pos, sig_neg = 0, 0
                 """
-
                 sigma = SIGMA
-
                 # model data
                 p3s_notobs = []
                 edots_notobs = []
@@ -1176,28 +1172,31 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_th
                         p3obs = None
                         for n in range(1000):
                             p3nolog = 10 ** p3
-                            p3obs_p = np.abs(p3nolog / (1 - n * p3nolog))
-                            p3obs_n = np.abs(p3nolog / (1 - (-n) * p3nolog))
-                            if p3obs_p > 2:
-                                p3obs = p3obs_p
-                                #print(edots_high[i], n)
-                                break
-                            if p3obs_n > 2:
-                                p3obs = p3obs_n
-                                #print(edots_high[i], n)
+                            # is it working p3obs_n removed
+                            p3obss = np.abs(p3nolog / (1 - n * p3nolog))
+                            if p3obss > 2:
+                                p3obs = p3obss
                                 break
                         if p3obs != None:
                             p3s_model[k] = np.log10(p3obs) # it is ok
                             edots_model[k] = edots10[k]
                         else:
                             skip_a = True
-                            t_tests[i, j, ii] = 10
+                            t_tests[i, j, ii] = 11
+                            #print("skip", i, j, ii, "p3obss", p3obss, "n", n, edots10[k])
                             pass
+                """
                 if a > 0:
                     skip_a = True # TODO HERE!!!
                     t_tests[i, j, ii] = 10
+                """
                 if skip_a is False:
-                    pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (this is fine..?)
+                    # randomize observations # something is wrong here
+                    #for zz in range(len(p3s10)):
+                    #    p3s10_rand[zz] = np.log10(np.random.normal(p3s[zz], np.abs(ep3s[zz])))
+
+                    #pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (this is fine..?)
+                    pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10_rand, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (this is fine..?)
                     acc = len([pv for pv in pvals if pv < 0.05])
                     t_tests[i, j, ii] = acc
                     if acc < acc_min:
@@ -1236,11 +1235,11 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_th
                     pl.show()
                 print(i, j, ii)
             #print(t_tests[i, j])
-            t_test[i, j] = np.min(t_tests[i, j]) # OK?
+            t_test[i, j] = np.mean(t_tests[i, j]) # OK?
 
     #s = 0.7
 
-    #"""
+    """
     print(acc_ind, )
     print("y= ", ys[acc_ind[0]], "a=", a_[acc_ind[1]])
 
@@ -1265,14 +1264,404 @@ def find_bestp3edot(data, y=(0.05, 30), a=(-1.5, 1.5), size=10, repeat=1, sig_th
     #"""
 
     pl.figure(figsize=(13.149606, 13.946563744))
-    pl.imshow(t_test.transpose(), origin="lower", extent=[ys[0], ys[-1], a_[0], a_[-1]])
-    pl.xlabel("y")
-    pl.ylabel("a")
+    pl.minorticks_on()
+    #pl.imshow(t_test.transpose(), origin="lower", extent=[ys[0], ys[-1], a_[0], a_[-1]])
+    pl.imshow(t_test, origin="lower", extent=[a_[0], a_[-1], ys[0], ys[-1]])
+    pl.xlabel("a")
+    pl.ylabel("y")
+    ticks = np.linspace(0, 2, num=10)
+    #pl.colorbar(ticks=ticks)
+    pl.colorbar()
+    pl.show()
+
+
+def check_p3edot(data, y=-0.1, a=-0.6, sig_thresh_proc=10):
+    # TODO repeat not implemented yet
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+
+    """
+    # YES this is the JiuJitsu way :D
+    f = open("data/p3_edot.txt", "w")
+    for i in range(len(p3s)):
+        f.write("{} {} {}\n".format(p3s[i], ep3s[i], edots[i]))
+    f.close()
+    return
+    #"""
+
+    p3s10 = np.log10(p3s)
+    ep3s10 = np.log10(ep3s)
+    edots10 = np.log10(edots)
+
+    p3s10_rand = np.empty(len(p3s))
+
+    #sig_thresh = int(len(edots) * sig_thresh_proc / 100)
+
+    X = np.log10(1e32)
+
+    edots_model = np.empty(len(edots))
+    p3s_model = np.empty(len(p3s))
+    edots_model.fill(np.nan)
+    p3s_model.fill(np.nan)
+    #p3_sigma = np.empty(len(edots))
+    #sigs = np.empty(len(edots))
+    #sig_pos = 0
+    #sig_neg = 0
+
+    sigma = np.std(p3s10)
+    two10 = np.log10(2)
+
+    # adding nsp dependence
+    nsp_fun = lambda v, x: v[0] * x + v[1] + x ** 2 * v[2]
+    v0 = [1, 1, 1]
+    xpoints = np.array([28, 31, 33, 35, 38]) # np.array([28, 30, 33, 38])
+    #ypoints = np.array([45, 30, 15, 10, 5])# np.array([60, 30, 15, 2])
+    #ypoints = np.array([5, 10, 15, 30, 45])# np.array([60, 30, 15, 2])
+    #ypoints = np.array([10, 10, 10, 10, 10])# np.array([60, 30, 15, 2])
+    ypoints = np.array([20, 20, 20, 20, 20])# np.array([60, 30, 15, 2])
+    x_, y_, v_nsp = least_sq(xpoints, ypoints, nsp_fun, v0, xmax=None)
+
+    b = y - a * X
+
+    p3fun = lambda x: a * x + b
+    xline = np.linspace(28, 37, num=100)
+    yline = p3fun(xline)
+
+    cpps = []
+    ecpps = []
+
+    # model data
+    p3s_notobs = []
+    edots_notobs = []
+    skip_a = False
+    for k in range(len(edots10)):
+        p3 = np.random.normal(p3fun(edots10[k]), sigma)
+        nsp = int(nsp_fun(v_nsp, edots10[k]))
+        print(nsp)
+        if p3 >= two10:
+            p3s_model[k] = p3
+            edots_model[k] = edots10[k]
+            cpp = 1 / 10 ** p3
+            cpps.append(cpp)
+            ecpps.append(edots10[k])
+        elif p3 < 1 / nsp:
+            p3 = np.random.normal(1 / nsp, sigma)
+            while p3 < 1 / nsp:
+                p3 = np.random.normal(1 / nsp, sigma)
+            if p3 >= two10:
+                p3s_model[k] = p3
+                edots_model[k] = edots10[k]
+                cpp = 1 / 10 ** p3
+                cpps.append(cpp)
+                ecpps.append(edots10[k])
+            else:
+                p3s_notobs.append(p3)
+                edots_notobs.append(edots10[k])
+                p3obs = None # not in log scale
+                for n in range(1000):
+                    p3nolog = 10 ** p3
+                    p3obss = np.abs(p3nolog / (1 - n * p3nolog))
+                    if p3obss > 2:
+                        p3obs = p3obss
+                        cpp = 1 / p3obs
+                        cpps.append(cpp)
+                        ecpps.append(edots10[k])
+                        if edots10[k] > 34:
+                            print(" n ", n, " ", cpp, " edot ", edots10[k])
+                        break
+                if p3obs != None:
+                    p3s_model[k] = np.log10(p3obs) # it is ok
+                    edots_model[k] = edots10[k]
+        else:
+            p3s_notobs.append(p3)
+            edots_notobs.append(edots10[k])
+            p3obs = None # not in log scale
+            for n in range(1000):
+                p3nolog = 10 ** p3
+                p3obss = np.abs(p3nolog / (1 - n * p3nolog))
+                if p3obss > 2:
+                    p3obs = p3obss
+                    cpp = 1 / p3obs
+                    cpps.append(cpp)
+                    ecpps.append(edots10[k])
+                    if edots10[k] > 34:
+                        print(" n ", n, " ", cpp, " edot ", edots10[k])
+                    break
+            if p3obs != None:
+                p3s_model[k] = np.log10(p3obs) # it is ok
+                edots_model[k] = edots10[k]
+
+
+
+    """
+    hi1, hi1b, me1, err1, xs1, med1 = plo.create_scatter_xy(ecpps, cpps, 15)
+    pl.figure()
+    #pl.scatter(ecpps, cpps)
+    pl.plot(hi1b, hi1, c="tab:red", lw=3, ls="--", label=r"$P_3$ width")
+    pl.errorbar(xs1, me1, yerr=err1, c="tab:red", lw=0, marker="o", ms=5, elinewidth=1)
+    pl.plot(xs1, med1, c="tab:red", lw=0, marker="o", ms=3)
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"(cpp)")
+    pl.minorticks_on()
+    pl.show()
+    pl.close()
+    """
+
+    # randomize observations # turned off... but do not comment..
+    #"""
+    for zz in range(len(p3s10)):
+        ran = np.random.normal(p3s[zz], ep3s[zz])
+        while ran < 2:
+            ran = np.random.normal(p3s[zz], ep3s[zz])
+        p3s10_rand[zz] = np.log10(ran)
+        #print("p3 ", p3s[zz], "new p3", ran, "error", ep3s[zz])
+        #p3s10_rand[zz] = p3s10[zz] # not random
+    #"""
+
+    # saving synthetic sample to a file
+    """
+    f = open("data/p3_edot-synthetic.txt", "w")
+    for i in range(len(p3s)):
+        f.write("{} {} {}\n".format(10**p3s_model[i], 0.1*10**p3s_model[i], edots[i]))
+    f.close()
+    #return
+    #"""
+
+
+    pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10_rand, p3s_model, edots10, ep3s, sample=50)
+    #pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (is it fine..?)
+
+    divergence = len([pv for pv in pvals if pv < 0.05])
+    print("Divergence: ", divergence)
+
+    pl.figure(figsize=(13.149606, 13.946563744))
+    pl.subplot(2,1,1)
+    pl.minorticks_on()
+    pl.scatter(edots10, p3s10_rand, alpha=0.5, ec="None")
+    pl.scatter(edots_model, p3s_model, alpha=0.5, ec="None")
+    pl.scatter(edots_notobs, p3s_notobs)
+    pl.plot(xline, yline)
+    pl.axhline(y=two10, ls=":", c="black")
+    xlims = pl.xlim()
+    pl.subplot(2,1,2)
+    pl.minorticks_on()
+    #pl.scatter(xpvals, pvals)
+    try:
+        pl.plot(xpvals_bin, pvals_bin, lw=2, c="C1")
+    except:
+        pass
+    pl.axhline(y=0.05, c="C2", ls="--")
+    pl.xlim(xlims[0], xlims[1])
+    #pl.scatter(edots10, sigs, c="green")
+    filename = "output/check_p3edot.pdf"
+    print(filename)
+    pl.savefig(filename)
+
+    pl.show()
+
+
+def check_p3edot_fun(data, sig_thresh_proc=10):
+    # TODO repeat not implemented yet
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+
+    """
+    # YES this is the JiuJitsu way :D
+    f = open("data/p3_edot.txt", "w")
+    for i in range(len(p3s)):
+        f.write("{} {} {}\n".format(p3s[i], ep3s[i], edots[i]))
+    f.close()
+    return
+    #"""
+
+    p3s10 = np.log10(p3s)
+    ep3s10 = np.log10(ep3s)
+    edots10 = np.log10(edots)
+
+    p3s10_rand = np.empty(len(p3s))
+
+    #sig_thresh = int(len(edots) * sig_thresh_proc / 100)
+
+    X = np.log10(1e32)
+
+    edots_model = np.empty(len(edots))
+    p3s_model = np.empty(len(p3s))
+    edots_model.fill(np.nan)
+    p3s_model.fill(np.nan)
+    #p3_sigma = np.empty(len(edots))
+    #sigs = np.empty(len(edots))
+    #sig_pos = 0
+    #sig_neg = 0
+
+    sigma = np.std(p3s10)
+    two10 = np.log10(2)
+
+    # adding nsp dependence
+    nsp_fun = lambda v, x: v[0] * x + v[1] + x ** 2 * v[2]
+    v0 = [1, 1, 1]
+    xpoints = np.array([28, 31, 33, 35, 38]) # np.array([28, 30, 33, 38])
+    #ypoints = np.array([45, 30, 15, 10, 5])# np.array([60, 30, 15, 2])
+    #ypoints = np.array([5, 10, 15, 30, 45])# np.array([60, 30, 15, 2])
+    ypoints = np.array([20, 20, 20, 20, 20])# np.array([60, 30, 15, 2])
+    x, y, v = least_sq(xpoints, ypoints, nsp_fun, v0, xmax=None)
+
+    """
+    xline = np.linspace(28, 38, num=100)
+    yline = []
+    for x in xline:
+        yline.append(nsp_fun(v, x))
+    pl.plot(xline, yline)
+    pl.scatter(xpoints, ypoints)
+    pl.xlabel(r"$\dot{E}$")
+    pl.ylabel(r"$n_{\rm sp}$")
+    pl.show()
+    #return
+    # """
+
+    #p3fun = p3_rs_log10n1
+    p3fun = p3_log10n2
+    xline = np.linspace(28, 37, num=100)
+    yline = []
+    for x in xline:
+        yline.append(p3fun(x, nsp_fun, v))
+
+    cpps = []
+    ecpps = []
+
+    # model data
+    p3s_notobs = []
+    edots_notobs = []
+    skip_a = False
+    for k in range(len(edots10)):
+        nsp = int(nsp_fun(v, edots10[k]))
+        #print(edots10[k], "nsp=", nsp)
+        p3 = np.random.normal(p3fun(edots10[k], nsp_fun, v), sigma)
+        if p3 >= two10:
+            p3s_model[k] = p3
+            edots_model[k] = edots10[k]
+            cpp = 1 / 10 ** p3
+            cpps.append(cpp)
+            ecpps.append(edots10[k])
+        elif p3 < 1 / nsp:
+            p3 = np.random.normal(1 / nsp, sigma)
+            while p3 < 1 / nsp:
+                p3 = np.random.normal(1 / nsp, sigma)
+            if p3 >= two10:
+                p3s_model[k] = p3
+                edots_model[k] = edots10[k]
+                cpp = 1 / 10 ** p3
+                cpps.append(cpp)
+                ecpps.append(edots10[k])
+            else:
+                p3s_notobs.append(p3)
+                edots_notobs.append(edots10[k])
+                p3obs = None # not in log scale
+                for n in range(1000):
+                    p3nolog = 10 ** p3
+                    p3obss = np.abs(p3nolog / (1 - n * p3nolog))
+                    if p3obss > 2:
+                        p3obs = p3obss
+                        cpp = 1 / p3obs
+                        cpps.append(cpp)
+                        ecpps.append(edots10[k])
+                        if edots10[k] > 34:
+                            print(" n ", n, " ", cpp, " edot ", edots10[k])
+                        break
+                if p3obs != None:
+                    p3s_model[k] = np.log10(p3obs) # it is ok
+                    edots_model[k] = edots10[k]
+        else:
+            p3s_notobs.append(p3)
+            edots_notobs.append(edots10[k])
+            p3obs = None # not in log scale
+            for n in range(1000):
+                p3nolog = 10 ** p3
+                p3obss = np.abs(p3nolog / (1 - n * p3nolog))
+                if p3obss > 2:
+                    p3obs = p3obss
+                    cpp = 1 / p3obs
+                    cpps.append(cpp)
+                    ecpps.append(edots10[k])
+                    if edots10[k] > 34:
+                        print(" n ", n, " ", cpp, " edot ", edots10[k])
+                    break
+            if p3obs != None:
+                p3s_model[k] = np.log10(p3obs) # it is ok
+                edots_model[k] = edots10[k]
+
+
+    """
+    hi1, hi1b, me1, err1, xs1, med1 = plo.create_scatter_xy(ecpps, cpps, 15)
+    pl.figure()
+    #pl.scatter(ecpps, cpps)
+    pl.plot(hi1b, hi1, c="tab:red", lw=3, ls="--", label=r"$P_3$ width")
+    pl.errorbar(xs1, me1, yerr=err1, c="tab:red", lw=0, marker="o", ms=5, elinewidth=1)
+    pl.plot(xs1, med1, c="tab:red", lw=0, marker="o", ms=3)
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"(cpp)")
+    pl.minorticks_on()
+    pl.show()
+    pl.close()
+    """
+
+    # randomize observations # turned off... but do not comment..
+    #"""
+    for zz in range(len(p3s10)):
+        ran = np.random.normal(p3s[zz], ep3s[zz])
+        while ran < 2:
+            ran = np.random.normal(p3s[zz], ep3s[zz])
+        p3s10_rand[zz] = np.log10(ran)
+        #print("p3 ", p3s[zz], "new p3", ran, "error", ep3s[zz])
+        #p3s10_rand[zz] = p3s10[zz] # not random
+    #"""
+
+    # saving synthetic sample to a file
+    """
+    f = open("data/p3_edot-synthetic.txt", "w")
+    for i in range(len(p3s)):
+        f.write("{} {} {}\n".format(10**p3s_model[i], 0.1*10**p3s_model[i], edots[i]))
+    f.close()
+    #return
+    #"""
+
+
+    pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10_rand, p3s_model, edots10, ep3s, sample=50)
+    #pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (is it fine..?)
+
+    divergence = len([pv for pv in pvals if pv < 0.05])
+    print("Divergence: ", divergence)
+
+    pl.figure(figsize=(13.149606, 13.946563744))
+    pl.subplot(2,1,1)
+    pl.minorticks_on()
+    pl.scatter(edots10, p3s10_rand, alpha=0.5, ec="None")
+    pl.scatter(edots_model, p3s_model, alpha=0.5, ec="None")
+    pl.scatter(edots_notobs, p3s_notobs)
+    pl.plot(xline, yline)
+    pl.axhline(y=two10, ls=":", c="black")
+    xlims = pl.xlim()
+    pl.subplot(2,1,2)
+    pl.minorticks_on()
+    #pl.scatter(xpvals, pvals)
+    try:
+        pl.plot(xpvals_bin, pvals_bin, lw=2, c="C1")
+    except:
+        pass
+    pl.axhline(y=0.05, c="C2", ls="--")
+    pl.xlim(xlims[0], xlims[1])
+    #pl.scatter(edots10, sigs, c="green")
+    filename = "output/check_p3edot.pdf"
+    print(filename)
+    pl.savefig(filename)
+
     pl.show()
 
 
 
 def drift_nodrift(filename="data/stats.csv"):
+    # drift includes p3only
     st = Table.read(filename, format='ascii', header_start=0, data_start=0)
     dr = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)]
     nodr = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==True)]
@@ -1281,3 +1670,93 @@ def drift_nodrift(filename="data/stats.csv"):
     dr["Age [yr]"] = dr["Age [yr]"].astype(float)
     nodr["Age [yr]"] = nodr["Age [yr]"].astype(float)
     return dr, nodr
+
+
+def p3dominant_driftonly_edotinfo(filename="data/stats.csv", thresh=5e32):
+
+    names = []
+    p2as = []
+    edots = []
+
+
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+    st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)]
+    st["Edot [ergs/s]"] = st["Edot [ergs/s]"].astype(float)
+    for row in st:
+        compn = row['PulsarDominantP3Feature']
+        mip, comp = compn.split()
+        dname = mip+'dominantDriftFeature_' + comp
+        pname = mip+'dominantP3Feature_' + comp
+        # if DriftFeature and P3feature both defined, choose the P3 feature; if only DriftFeature or P3feature, take this.
+        # kind of strange, but works
+        if float(row[dname]) > 0 and float(row[pname])>0:
+            fn = 'F'+str(row[pname])
+        elif float(row[dname]) > 0:
+            fn = 'F'+str(row[dname])
+        elif float(row[pname]) > 0:
+            fn = 'F'+str(row[pname])
+        feature = mip+' '+comp+' '+fn
+        if row[feature.replace(" ", "_")] != "P3only":
+
+            edot = float(row['Edot [ergs/s]'])
+            if edot <= thresh:
+                # P2 assymetry
+                comps = row["{} 2dfs nrs".format(mip)].split(",") # get component numbers
+                p2a_all = []
+                p2ae_all = []
+                # TODO change to the dominant feature
+                for c in comps:
+                    p2a_all.append(float(row["C{} Power".format(c)]))
+                    p2ae_all.append(float(row["C{} PowerErr".format(c)]))
+                    ind = np.argmax(p2a_all)
+                p2as.append(p2a_all[ind])
+                names.append(row["JName_paper"])
+                edots.append(row['Edot [ergs/s]'])
+
+                #p2aserr.append(p2ae_all[ind])
+            """
+            p3s.append(float(row[feature + ': P3_value']))
+            p3serr.append(float(row[feature + ': P3_error']))
+            # P2 the lowest value
+            p2, p2ep, p2em = get_smallest_p2(row)
+            p2s.append(p2)
+            p2serr_p.append(p2ep)
+            p2serr_m.append(p2em)
+            # p2 for the dominant feature (not the lowest value)
+            #p2s.append(float(row[feature + ': P2_value']))
+            #p2serr_p.append(float(row[feature + ': P2_error_plus']))
+            #p2serr_m.append(float(row[feature + ': P2_error_minus']))
+            p3ws.append(float(row[feature + ': P3_stddev_value']))
+            p3wserr.append(float(row[feature + ': P3_stddev_error']))
+            edots.append(row['Edot [ergs/s]'])
+            jnames.append(row["JName_paper"])
+            age.append(float(row["Age [yr]"]))
+            bsurf.append(float(row["Bsurf [G]"])) # float important!
+            blc.append(float(row["Blc [G]"])) # float important!
+            # P2 assymetry
+            comps = row["{} 2dfs nrs".format(mip)].split(",") # get component numbers
+            p2a_all = []
+            p2ae_all = []
+            # TODO change to the dominant feature
+            for c in comps:
+                p2a_all.append(float(row["C{} Power".format(c)]))
+                p2ae_all.append(float(row["C{} PowerErr".format(c)]))
+            ind = np.argmax(p2a_all)
+            p2as.append(p2a_all[ind])
+            p2aserr.append(p2ae_all[ind])
+            """
+    import subprocess
+
+    idx = np.argsort(p2as)
+    names = np.array(names)[idx]
+    edots = np.array(edots)[idx]
+    p2as = np.array(p2as)[idx]
+    ht = "https://www.atnf.csiro.au/people/Simon.Johnston/meerkat/"
+    for i in range(len(names)):
+
+        print("{}_{}".format(i+1, names[i]))
+        cmd = "firefox {}{}{}".format(ht, names[i], ".html")
+        subprocess.call(cmd, shell = True)
+    #print(edots)
+    #print(st)
+    return
