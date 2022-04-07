@@ -1,4 +1,5 @@
 module Simulation
+    using LsqFit
     using PyPlot
     using Statistics
     using Random, Distributions
@@ -218,8 +219,10 @@ module Simulation
 
     end
 
-
-    function best_p3edot_limited(;y=(-1.5, 1.5), a=(-1.0, 1.0), size_=100, repeat=100, filename="../data/p3_edot.txt" ) #, filename="../data/p3_edot-synthetic.txt")
+    """
+    same as bestp3edot but with limit on minimum p3 based on number of sparks i.e. p3 > 1/n_s (P4 >P)
+    """
+    function best_p3edot_limited(;y=(-1.5, 1.5), a=(-1.0, 1.0), size_=10, repeat=10, filename="../data/p3_edot.txt" ) #, filename="../data/p3_edot-synthetic.txt")
         p3s, ep3s, edots = read_data(filename) #; edot_max=4e31) #; edot_min=4e31) #; edot_min=5e32) #  edot_max!!! # HERE HERE HERE
         ys = range(y[1], y[2], length=size_)
         as = range(a[1], a[2], length=size_)
@@ -373,6 +376,194 @@ module Simulation
 
     end
 
+    """
+    Using parabolic fit to the observed data and assuming aliassing to reproduce the fit
+    """
+    function best_p3edot_parabolic(;y=(-1.5, 1.5), a=(-1.0, 1.0), size_=100, repeat=100, filename="../data/p3_edot.txt" ) #, filename="../data/p3_edot-synthetic.txt")
+        p3s, ep3s, edots = read_data(filename) #; edot_max=4e31) #; edot_min=4e31) #; edot_min=5e32) #  edot_max!!! # HERE HERE HERE
+        ys = range(y[1], y[2], length=size_)
+        as = range(a[1], a[2], length=size_)
+        x_th = log10(1e31)
+        sigma = std(p3s)
+        two10 = log10(2)
+
+        obsnum = length(p3s)
+
+        p3s_obs = Array{Float64}(undef, obsnum)
+        p3s_model = Array{Float64}(undef, obsnum)
+        edots_model = Array{Float64}(undef, obsnum)
+        t_tests = Array{Float64}(undef, size_, size_, repeat)
+        t_test = Array{Float64}(undef, size_, size_)
+        #t_tests = zeros(Float64, (size_, size_, repeat))
+        #t_test = zeros(Float64, (size_, size_))
+
+        emin = minimum(edots)
+        emax = maximum(edots)
+
+        # poarabolic fit to whole data
+        @. para(x, p) = p[1] * x^2 + p[2] * x + p[3]
+        fit = curve_fit(para, edots, p3s, [1., 1., 1.])
+        p1 = coef(fit)
+        err = stderror(fit)
+        xp = range(emin, emax, length=100)
+        yp = para(xp, p1)
+
+        # unalised values assuming all observations are aliased
+        @. p3(p3obs, n) = p3obs / (n * p3obs + 1)
+        yintr = log10.(p3(10 .^ yp, 1)) # nice
+
+        # polynominal fit to intrinsic p3
+        @. poly(x, p) = p[1] * x^3 + p[2] * x^2 + p[3] * x + p[4]
+        fit = curve_fit(poly, xp, yintr, [1., 1., 1., 1.])
+        p2 = coef(fit)
+        yp2 = poly(xp, p2)
+
+        p3intr(x, p) = poly(x, p) # intrinsic (unaliased) p3
+
+        # nsp dependence
+        @. nsp_fun(x, p) = p[1] * x^2 + p[2] * x + p[3]
+        xpoints = [29, 31, 33, 35, 36.4]
+        ypoints = [15, 10, 5, 3, 2]
+        #ypoints = [2, 2, 2, 2, 2]
+        fit = curve_fit(nsp_fun, xpoints, ypoints, [1., 1., 1.])
+        pnsp = coef(fit)
+        nsps = nsp_fun(xp, pnsp)
+        p3mins = log10.(1. ./ nsps)
+
+        #=
+        scatter(edots, p3s)
+        plot(xp, yp)
+        plot(xp, yintr)
+        plot(xp, yp2)
+        plot(xp, p3mins, ls="--", c="black")
+        show()
+        q = readline(stdin; keep=false)
+        PyPlot.close()
+        =#
+
+
+        for i in 1:size_
+            for j in 1:size_
+
+                y0 = ys[i]
+                a = as[j]
+                b = y0 - a * x_th
+
+                # dependence in question
+                p3fun(x) = a * x + b
+                xline = range(emin, emax, length=100)
+                yline = p3fun.(xline)
+
+                #=
+                        figure(figsize=(13.149606, 13.946563744))
+                        subplot(2,1,1)
+                        minorticks_on()
+                        scatter(edots, p3s)
+                        #scatter(edots_model, p3s_model)
+                        #scatter(edots_notobs, p3s_notobs)
+                        plot(edots, yt)
+                        xlims = xlim()
+                        subplot(2,1,2)
+                        minorticks_on()
+                        axhline(y=0.05, c="C2", ls="--")
+                        #xlim(xlims[0], xlims[1])
+                        #scatter(xpvals, pvals, c="green")
+                        show()
+                        q = readline(stdin; keep=false)
+                        if q == "q"
+                            return
+                        end
+                        close()
+                =#
+
+                for k in 1:repeat
+                    p3s_notobs = []
+                    edots_notobs = []
+                    skip = false
+                    # generate p3
+                    for ii in 1:length(edots)
+                        p3f = p3fun(edots[ii])
+                        p3i = p3intr(edots[ii], p2) # p2 fitting parameters
+                        if  p3f >= p3i
+                            p3 = p3f
+                        else
+                            p3 = p3i
+                        end
+                        p3m = p3
+                        p3 = rand(Normal(p3m, sigma))
+                        while 10 ^ p3 < 1. / nsp_fun(edots[ii], pnsp)
+                            p3 = rand(Normal(p3m, sigma))
+                            #println("p3 ", 10^p3)
+                            #println("p3 limit ", 1. / nsp_fun(edots[ii], pnsp))
+                        end
+                        if 10 ^ p3 >= 2
+                            p3s_model[ii] = p3
+                            edots_model[ii] = edots[ii]
+                        else
+                            while 10 ^ p3 == 1
+                                p3 = rand(Normal(p3m, sigma))
+                            end
+                            push!(p3s_notobs, p3)
+                            push!(edots_notobs, edots[ii])
+                            alias = false
+                            n = 1
+                            p3obs = p3
+                            while (10 ^ p3obs < 2)
+                                p3obs = log10(abs(10 ^ p3 / (1 - n * 10 ^ p3)))
+                                n += 1
+                                alias = true
+                            end
+                            p3s_model[ii] = p3obs # it is ok
+                            edots_model[ii] = edots[ii]
+                        end
+                    end # generate p3
+
+                    # randomize observations
+                    for ii in 1:obsnum
+                        error = 10 ^ ep3s[ii]
+                        p3 = 10 ^ p3s[ii]
+                        new_p3 = rand(Normal(p3, error))
+                        while (new_p3 < 2)
+                            new_p3 = rand(Normal(p3, error))
+                        end
+                        #println(p3s_obs[ii])
+                        #println(p3, " ", new_p3, " ", error)
+                        p3s_obs[ii] = log10(new_p3)
+                        #p3s_obs[ii] = p3s[ii] # not random
+                    end
+
+
+                    if skip != true
+                        pvals, xpvals = calculate_pvals(p3s_obs, p3s_model, edots)
+                        t_tests[i, j, k] = length([pv for pv in pvals if pv < 0.05])
+                    else
+                        t_tests[i, j, k] = 11
+                    end
+                end # k
+                t_test[i, j] = trunc(mean(t_tests[i, j, :]))
+                #t_test[i, j] = minimum(t_tests[i, j, :])
+            end # j
+        end # i
+        #return
+
+        print(size(t_test))
+        figure(figsize=(13.149606, 13.946563744))
+        minorticks_on()
+        #scatter([-0.3], [-0.5], c="red", s=10)
+        #imshow(transpose(t_test), origin="lower", extent=[ys[1], ys[end], as[1], as[end]])
+        imshow(t_test, origin="lower", extent=[as[1], as[end], ys[1], ys[end]])
+        xlabel("a")
+        ylabel("y")
+        ticks = range(0, stop=10, length=11)
+        colorbar(ticks=ticks)
+        savefig("best_p3edot_parabolic.pdf")
+        show()
+        q = readline(stdin; keep=false)
+        PyPlot.close()
+
+    end
+
+
 
     function test_python()
         # seems to work...
@@ -389,7 +580,8 @@ module Simulation
 
     function main()
         #best_p3edot()
-        best_p3edot_limited()
+        #best_p3edot_limited()
+        best_p3edot_parabolic()
         println("Bye")
     end
 

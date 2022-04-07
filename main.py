@@ -175,6 +175,31 @@ def fit_p3_edot():
     d1 = da.p3dominant_driftonly()
     pl.fit_p3_edot(d1)
 
+
+def fit_p3_edot2():
+    d1 = da.p3dominant_driftonly()
+    pl.fit_p3_edot2(d1)
+
+def fit_p3_edot3():
+    d1 = da.p3dominant_driftonly()
+    pl.fit_p3_edot3(d1)
+
+
+def fit_p3_edot4():
+    d1 = da.p3dominant_driftonly()
+    pl.fit_p3_edot4(d1)
+
+
+def fit_p3_edot5():
+    d1 = da.p3dominant_driftonly()
+    pl.fit_p3_edot5(d1)
+
+
+def fit_p3_edot7():
+    d1 = da.p3dominant_driftonly()
+    pl.fit_p3_edot7(d1)
+
+
 def main():
     #test()
     #latex_test() # obsolete
@@ -206,7 +231,12 @@ def main():
     #check_p3edot_fun()
     #get_headerfile()
     #plot_edot_histograms()
-    fit_p3_edot()
+    #fit_p3_edot()
+    #fit_p3_edot2()
+    #fit_p3_edot3()
+    #fit_p3_edot4()
+    #fit_p3_edot5()
+    fit_p3_edot7()
 
 
     print("Bye")

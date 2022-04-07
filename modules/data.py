@@ -590,6 +590,8 @@ def p3dominant_driftonly(filename="data/stats.csv"):
     s1400 = []
     w50 = []
     w10 = []
+    periods = []
+    pdots = []
 
     st = Table.read(filename, format='ascii', header_start=0, data_start=0)
     st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)]
@@ -627,6 +629,8 @@ def p3dominant_driftonly(filename="data/stats.csv"):
             age.append(float(row["Age [yr]"]))
             bsurf.append(float(row["Bsurf [G]"])) # float important!
             blc.append(float(row["Blc [G]"])) # float important!
+            periods.append(float(row["Period [s]"]))
+            pdots.append(float(row["Pdot [s/s]"]))
             try:
                 s1400.append(float(row["S1400 [mJy]"])) # float important!
             except:
@@ -653,7 +657,7 @@ def p3dominant_driftonly(filename="data/stats.csv"):
             p2aserr.append(p2ae_all[ind])
 
     #print(st)
-    return p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames, age, bsurf, blc, s1400, w50, w10
+    return p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames, age, bsurf, blc, s1400, w50, w10, periods, pdots
 
 
 def p3dominant_p3only(filename="data/stats.csv"):
@@ -1276,7 +1280,6 @@ def find_bestp3edot(data, y=(-1.5, 1.5), a=(-1.0, 1.0), size=20, repeat=20, sig_
 
 
 def check_p3edot(data, y=-0.1, a=-0.6, sig_thresh_proc=10):
-    # TODO repeat not implemented yet
     p3s = np.array(data[0])
     ep3s = np.array(data[1])
     edots = np.array(data[9])
@@ -1315,7 +1318,7 @@ def check_p3edot(data, y=-0.1, a=-0.6, sig_thresh_proc=10):
     # adding nsp dependence
     nsp_fun = lambda v, x: v[0] * x + v[1] + x ** 2 * v[2]
     v0 = [1, 1, 1]
-    xpoints = np.array([28, 31, 33, 35, 38]) # np.array([28, 30, 33, 38])
+    xpoints = np.array([29, 31, 33, 35, 37]) # np.array([28, 30, 33, 38])
     #ypoints = np.array([45, 30, 15, 10, 5])# np.array([60, 30, 15, 2])
     #ypoints = np.array([5, 10, 15, 30, 45])# np.array([60, 30, 15, 2])
     #ypoints = np.array([10, 10, 10, 10, 10])# np.array([60, 30, 15, 2])
@@ -1345,9 +1348,9 @@ def check_p3edot(data, y=-0.1, a=-0.6, sig_thresh_proc=10):
             cpp = 1 / 10 ** p3
             cpps.append(cpp)
             ecpps.append(edots10[k])
-        elif p3 < 1 / nsp:
+        elif 10 ** p3 < 1 / nsp:
             p3 = np.random.normal(1 / nsp, sigma)
-            while p3 < 1 / nsp:
+            while 10 ** p3 < 1 / nsp:
                 p3 = np.random.normal(1 / nsp, sigma)
             if p3 >= two10:
                 p3s_model[k] = p3
@@ -1391,8 +1394,6 @@ def check_p3edot(data, y=-0.1, a=-0.6, sig_thresh_proc=10):
             if p3obs != None:
                 p3s_model[k] = np.log10(p3obs) # it is ok
                 edots_model[k] = edots10[k]
-
-
 
     """
     hi1, hi1b, me1, err1, xs1, med1 = plo.create_scatter_xy(ecpps, cpps, 15)
@@ -1462,7 +1463,6 @@ def check_p3edot(data, y=-0.1, a=-0.6, sig_thresh_proc=10):
 
 
 def check_p3edot_fun(data, sig_thresh_proc=10):
-    # TODO repeat not implemented yet
     p3s = np.array(data[0])
     ep3s = np.array(data[1])
     edots = np.array(data[9])
@@ -1606,7 +1606,7 @@ def check_p3edot_fun(data, sig_thresh_proc=10):
     pl.close()
     """
 
-    # randomize observations # turned off... but do not comment..
+    # randomize observations # turned off?... but do not comment..
     #"""
     for zz in range(len(p3s10)):
         ran = np.random.normal(p3s[zz], ep3s[zz])
