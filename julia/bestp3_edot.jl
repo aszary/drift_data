@@ -50,6 +50,55 @@ module Simulation
     end
 
 
+    function read_data2(filename; edot_min=nothing, edot_max=nothing)
+        p3s = []
+        ep3s = []
+        periods = []
+        pdots = []
+        edots = []
+        f = open(filename)
+        for line in readlines(f)
+            r = split(line)
+            edot = parse(Float64, r[5])
+            if (edot_min != nothing) && (edot_max != nothing)
+                if (edot >= edot_min) && (edot <= edot_max)
+                    push!(p3s, parse(Float64, r[1]))
+                    push!(ep3s, parse(Float64, r[2]))
+                    push!(periods, parse(Float64, r[3]))
+                    push!(pdots, parse(Float64, r[4]))
+                    push!(edots, parse(Float64, r[5]))
+                end
+            elseif edot_max != nothing
+                if edot <= edot_max
+
+                    push!(p3s, parse(Float64, r[1]))
+                    push!(ep3s, parse(Float64, r[2]))
+                    push!(periods, parse(Float64, r[3]))
+                    push!(pdots, parse(Float64, r[4]))
+                    push!(edots, parse(Float64, r[5]))
+                end
+            elseif edot_min != nothing
+                if edot >= edot_min
+                    push!(p3s, parse(Float64, r[1]))
+                    push!(ep3s, parse(Float64, r[2]))
+                    push!(periods, parse(Float64, r[3]))
+                    push!(pdots, parse(Float64, r[4]))
+                    push!(edots, parse(Float64, r[5]))
+                end
+            else
+                push!(p3s, parse(Float64, r[1]))
+                push!(ep3s, parse(Float64, r[2]))
+                push!(periods, parse(Float64, r[3]))
+                push!(pdots, parse(Float64, r[4]))
+                push!(edots, parse(Float64, r[5]))
+            end
+        end
+        close(f)
+        return p3s, ep3s, periods, pdots, edots
+    end
+
+
+
     function calculate_pvals(data1, data2, edots, sample=30)
 
         i = sortperm(edots)
@@ -564,6 +613,165 @@ module Simulation
     end
 
 
+    """
+    Using Geoff's fit
+    """
+    function best_p3edot_geoff(;w=(0.5, 1.5), t=(-1.5, -0.5), size_=100, repeat=100, filename="../data/p3_ppdotedot.txt")
+        # values not in log scale
+        p3s, ep3s, periods, pdots, edots = read_data2(filename) #; edot_max=4e31) #; edot_min=4e31) #; edot_min=5e32) #  edot_max!!! # HERE HERE HERE
+
+        obsnum = length(p3s)
+        xi_xs = Array{Float64}(undef, obsnum)
+        for (i, p) in enumerate(periods)
+            xi_xs[i] = p ^ (-1.78) * (pdots[i] / 1e-15)
+        end
+
+        ws = range(w[1], w[2], length=size_)
+        ts = range(t[1], t[2], length=size_)
+        x_th = 7e30 # low - high edot
+
+
+        p3s_obs = Array{Float64}(undef, obsnum)
+        p3s_model = Array{Float64}(undef, obsnum)
+        edots_model = Array{Float64}(undef, obsnum)
+        xs_model = Array{Float64}(undef, obsnum)
+        t_tests = Array{Float64}(undef, size_, size_, repeat)
+        t_test = Array{Float64}(undef, size_, size_)
+
+        emin = minimum(edots)
+        emax = maximum(edots)
+
+        """ aliased values """
+        function p3aliased(p3, n)
+            if p3 > 1
+                return p3 / (n * p3 - 1)
+            elseif p3 == 1
+                return 100.
+            else
+                return p3 / (1 - n * p3)
+            end
+        end
+
+        # dependence in question
+        function p3fun(x, w, t)
+            return abs(1 / (1 - w / (x - t)))
+        end
+
+        n = 1
+        sigma = std(log10.(p3s))
+        for i in 1:size_
+            for j in 1:size_
+                w_ = ws[i]
+                t_ = ts[j]
+                #w_ = 1.0
+                #t_ = -1.05
+                xline = 10 .^ range(-3, 4, length=100)
+                yline = p3fun.(xline, w_, t_)
+                p3s_notobs = []
+                xs_notobs = []
+                for k in 1:repeat
+                    p3s_notobs = []
+                    xs_notobs = []
+                    skip = false
+                    # generate p3
+                    for ii in 1:length(xi_xs)
+                        p3m = p3fun(xi_xs[ii], w_, t_)
+                        p3 = 10 ^ rand(Normal(log10(p3m), sigma))
+                        if p3 > 2
+                            p3s_model[ii] = p3
+                            xs_model[ii] = xi_xs[ii]
+                        else
+                            p3obs = p3aliased(p3, n)
+                            kk = 1
+                            while p3obs < 2
+                                p3 = 10 ^ rand(Normal(log10(p3m), sigma))
+                                p3obs = p3aliased(p3, n)
+                                kk += 1
+                                if kk == 1000
+                                    p3obs = 100
+                                    break
+                                end
+
+                            end
+                            p3s_model[ii] = p3obs
+                            xs_model[ii] = xi_xs[ii]
+                            push!(p3s_notobs, p3)
+                            push!(xs_notobs, xi_xs[ii])
+                        end
+                    end # generate p3
+
+                    # randomize observations
+                    for ii in 1:obsnum
+                        error = 10 ^ ep3s[ii]
+                        p3 = 10 ^ p3s[ii]
+                        new_p3 = rand(Normal(p3s[ii], ep3s[ii]))
+                        while (new_p3 < 2)
+                            new_p3 = rand(Normal(p3s[ii], ep3s[ii]))
+                        end
+                        p3s_obs[ii] = new_p3
+                    end
+
+                    if skip != true
+                        pvals, xpvals = calculate_pvals(p3s_obs, p3s_model, edots)
+                        t_tests[i, j, k] = length([pv for pv in pvals if pv < 0.05])
+                    else
+                        t_tests[i, j, k] = 11
+                    end
+                end # k
+
+                println("w = $w_ t = $t_ ", trunc(mean(t_tests[i, j, :])))
+                #=
+                    figure(figsize=(13.149606, 13.946563744))
+                    subplot(2,1,1)
+                    minorticks_on()
+                    #scatter(xi_xs, p3s)
+                    scatter(xi_xs, p3s_obs, c="tab:blue")
+                    scatter(xi_xs, p3s_model, c="tab:orange")
+                    scatter(xs_notobs, p3s_notobs, c="tab:grey")
+                    #scatter(edots_model, p3s_model)
+                    #scatter(edots_notobs, p3s_notobs)
+                    plot(xline, yline, c="tab:red")
+                    xlims = xlim()
+                    loglog()
+                    subplot(2,1,2)
+                    minorticks_on()
+                    axhline(y=0.05, c="C2", ls="--")
+                    #xlim(xlims[0], xlims[1])
+                    #scatter(xpvals, pvals, c="green")
+                    #show()
+                    savefig("test.pdf")
+                    PyPlot.close()
+                    q = readline(stdin; keep=false)
+                    if q == "q"
+                        return
+                    end
+                =#
+                t_test[i, j] = trunc(mean(t_tests[i, j, :]))
+                #t_test[i, j] = minimum(t_tests[i, j, :])
+            end # j
+        end # i
+        #return
+
+        print(size(t_test))
+        figure(figsize=(13.149606, 13.946563744))
+        minorticks_on()
+        #scatter([-0.3], [-0.5], c="red", s=10)
+        #imshow(transpose(t_test), origin="lower", extent=[ys[1], ys[end], as[1], as[end]])
+        imshow(t_test, origin="lower", extent=[ts[1], ts[end], ws[1], ws[end]])
+        xlabel("t?")
+        ylabel("w?")
+
+        ticks = range(0, stop=10, length=11)
+        colorbar(ticks=ticks)
+        savefig("best_p3edot_geoff.pdf")
+        show()
+        q = readline(stdin; keep=false)
+        PyPlot.close()
+
+    end
+
+
+
 
     function test_python()
         # seems to work...
@@ -581,7 +789,8 @@ module Simulation
     function main()
         #best_p3edot()
         #best_p3edot_limited()
-        best_p3edot_parabolic()
+        #best_p3edot_parabolic()
+        best_p3edot_geoff()
         println("Bye")
     end
 

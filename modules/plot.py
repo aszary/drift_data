@@ -2781,7 +2781,7 @@ def fit_p3_edot4(data):
     f = lambda x, u: 1 / (1 - u[0] / (x - u[1])) #p3
     g = lambda x, u: 1 / (1 - 1 / f(x, u)) # aliased value
     x = np.linspace(1, 10, num=100)
-    u = [1, 0]
+    u = [1, 1]
     fs = f(x, u)
     gs = g(x, u)
     pl.subplot(2,1,1)
@@ -2996,11 +2996,169 @@ def fit_p3_edot5(data):
     pl.show()
 
 
+
+def fit_p3_edot6(data):
+    """
+        using Geoff's 1 - 1/x dependence, with Xiaoxi's correlation fixing dep.
+    """
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+    periods = np.array(data[17])
+    pdots = np.array(data[18])
+
+    xi_xs = []
+    for i, p in enumerate(periods):
+        val = p ** (-1.78) * (pdots[i]/1e-15)
+        xi_xs.append(val)
+    xi_xs = np.array(xi_xs)
+
+    """
+    # YES this is the JiuJitsu way :D
+    f = open("data/p3_ppdotedot.txt", "w")
+    for i in range(len(p3s)):
+        f.write("{} {} {} {} {}\n".format(p3s[i], ep3s[i], periods[i], pdots[i], edots[i]))
+    f.close()
+    return
+    #"""
+
+
+
+    p3s10 = np.log10(p3s)
+    ep3s10 = np.log10(ep3s)
+    edots10 = np.log10(edots)
+
+    p3s10_rand = np.empty(len(p3s))
+
+    # alised values
+    #p3aliased = lambda p3, n: p3 / (1  - n * p3)
+    def p3aliased(p3, n):
+        if type(p3) == np.float64 or type(p3) == float:
+            if p3 > 1:
+                return p3 / (n * p3 - 1)
+            elif p3 == 1:
+                return 100.
+            else:
+                return p3 / (1 - n * p3)
+        else:
+            res = []
+            for p3_ in p3:
+                if p3_ > 1:
+                    res.append(p3_ / (n * p3_ - 1))
+                elif p3_ == 0:
+                    res.append(200)
+                elif p3_ < 1:
+                    res.append(p3 / (1 - n * p3))
+            return np.array(res)
+
+
+    # dependence in question
+    #p3fun = lambda x, w, th: np.fabs(1 / (1 - w / (x - th)))
+    def p3fun(xs, w, th):
+        if type(xs) == np.float64:
+            if xs != th:
+                return np.fabs(1 / (1 - (w / (xs - th))**1))
+                #return np.fabs(1 / (1 - 1/ xs))
+            else:
+                return 1.
+        else:
+            res = []
+            for x in xs:
+                if x != th:
+                    res.append(np.fabs(1 / (1 - (w / (x - th))**1)))
+                    #res.append(np.fabs(1 / (1 - 1 / x)))
+                else:
+                    res.append(1)
+            return np.array(res)
+
+    # observed values
+    def p3_obs(v, edot10):
+        w = v[0]
+        th = v[1]
+        ym = p3fun(edot10, w, th)
+        y = ym
+        #print(edot10, ym)
+        n = 1
+        if ym < 1e-3:
+            return 1e-3
+        while y < 2:
+            #print(edot10, ym, p3aliased(ym, n), n)
+            y = np.abs(p3aliased(ym, n))
+            #print(y, n)
+            n += 1
+        return y
+
+    w = 1 #1 # 0.5 # 6.32 # 9.65
+    th = -1.05 #-1 # -0.42 # -3.16 # -3.16
+    vobs = [w, th]
+    xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
+    yt = p3fun(xt, vobs[0], vobs[1])
+
+    yo = np.empty(xt.size)
+    for i, x in enumerate(xt):
+        yo[i] = p3_obs(vobs, x)
+
+    pl.rc("font", size=12)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    fig = pl.figure(figsize=(7.086614, 1.3*4.38189))  # 18 cm x 11.13 cm # golden ratio
+    pl.subplots_adjust(left=0.11, bottom=0.15, right=0.99, top=0.99)
+    pl.subplot(2,1,1)
+    pl.minorticks_on()
+    sc = pl.scatter(xi_xs, p3s, c="tab:blue", s=5, zorder=1)
+    #pl.plot(10**xh, 10**yh, c="tab:blue")
+    #pl.plot(10**xh, 10**yintr, c="tab:red")
+    #pl.plot(10**xp, 10**yintr, c="tab:orange", alpha=0.3, lw=3)
+    #lt, = pl.plot(10**xt, yt, c="black", lw=1, ls="-")
+    #lo, = pl.plot(10**xt, yo, c="red", lw=2, ls="-", alpha=0.4)
+    lt, = pl.plot(xt, yt, c="black", lw=1, ls="-")
+    lo, = pl.plot(xt, yo, c="red", lw=2, ls="-", alpha=0.4)
+    #pl.legend()
+    pl.loglog()
+    #pl.axhline(y=1)
+    yl = pl.ylim()
+    #pl.ylim([0.01, yl[1]])
+    pl.ylim([0.2, 300])
+    pl.xlabel(r"$(P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15} {\rm s/s })$")
+    pl.ylabel(r"$P_3$ in $P$")
+    xlims = pl.xlim()
+
+    pl.figtext(0.5, 0.4, r"$f(x) = \frac{1}{1-\frac{w}{x-t}}$", size=15)
+
+    # Sliders
+    axcolor = 'lightgoldenrodyellow'
+    wax = pl.axes([0.25, 0.1, 0.65, 0.03], facecolor=axcolor)
+    thax = pl.axes([0.25, 0.3, 0.65, 0.03], facecolor=axcolor)
+
+    sw = Slider(wax, 'w', 0, 10, valinit=w, valstep=0.01)
+    sth = Slider(thax, 't', -10, 20, valinit=th, valstep=0.01)
+    def update(val):
+        w = sw.val
+        th = sth.val
+        yt = p3fun(xt, w, th)
+        yo = np.empty(xt.size)
+        for i, x in enumerate(xt):
+            yo[i] = p3_obs([w, th], x)
+        lt.set_ydata(yt)
+        lo.set_ydata(yo)
+        fig.canvas.draw_idle()
+        #print(w, th)
+
+    sw.on_changed(update)
+    sth.on_changed(update)
+
+    filename = "output/fit_p3_edot6.pdf"
+    print(filename)
+    pl.savefig(filename)
+    pl.show()
+
+
 def fit_p3_edot7(data, a=-0.9, y0=0.7):
     """
+        NO GOOD result! check fit_p3_edot6
         using parabolic dependence derived from linear fit in low-edot region and intrinsic p3 values in high-edot region
     """
-    # TODO repeat not implemented yet
     p3s = np.array(data[0])
     ep3s = np.array(data[1])
     edots = np.array(data[9])
@@ -3068,48 +3226,37 @@ def fit_p3_edot7(data, a=-0.9, y0=0.7):
         yintr[i] = np.log10(p3_intr(10**yh2[i], n))
     # parabolic fit for the whole sample
 
-    #parabolic = lambda v, x: v[0] * x ** 2 + v[1] * x + v[2]  # +  v[3] * x **3 + v[4] * x**4 + v[5] * x**5 + v[6] * x**6
-    parabolic = lambda v, x: np.exp(- v[0] * (x ** v[2] - v[1]))
+    #parabolic = lambda v, x: v[0] * x ** 2 + v[1] * x + v[2]   # +  v[3] * x **3 + v[4] * x**4 + v[5] * x**5 + v[6] * x**6 + v[7] * x**7 + v[8] * x**8 + v[9] * x**9 + v[10] * x**10 + v[11] * x**11
+    parabolic = lambda v, x: np.exp(- v[0] * (x ** v[2] - v[1])) # best?
     #parabolic = lambda v, x: v[0] ** (x ** v[2] - v[1])
+    #parabolic = lambda v, x: v[3] * v[0] ** (v[2]* x - v[1])
+    #parabolic = lambda v, x: np.exp(-x ** v[0] - v[1]) # best?
 
-    #v0 = [1,33,1, 1,1, 1, 1]
-    v0 = [1,33,1, 1,1]
+    #v0 = [1,33,1, 1,1, 1, 1, 1, 1, 1, 1, 1]
+    #v0 = [1,33,1, 1,1]
     #v0 = [0.2, 33, 1]
+    v0 = [1, 33, 1,1, 1]
 
     xp, yp, vp = least_sq(np.array(list(xl) + list(xh2)), np.array(list(yl_lin) + list(yintr)), parabolic, v0, xmax=None)
     print(vp)
-
 
     pl.scatter(xl, yl)
     pl.plot(xl, yl_lin)
     pl.scatter(xh, yh)
     pl.plot(xh2, yh2)
     pl.plot(xh2, yintr)
-    pl.plot(xp, yp, lw=2)
+    pl.plot(xp, yp, lw=3)
+    #pl.plot(xp, parabolic(vp, xp), lw=3)
     pl.show()
 
 
     return
 
-
-
-    #yintr = np.empty(yh.size)
-    #n = 1
-    #for i, y in enumerate(yh):
-    #   yintr[i] = np.log10(p3(10**y, n))
-
-    #exit()
-
     # adding nsp dependence
     nsp_fun = lambda v, x: v[0] * x + v[1] + x ** 2 * v[2]
     v0 = [1, 1, 1]
     xpoints = np.array([29, 31, 33, 35, 36.4])
-    #ypoints = np.array([60, 30, 15, 10, 2])
-    #ypoints = np.array([5, 10, 15, 30, 45])
-    #ypoints = np.array([10, 10, 10, 10, 10])
-    #ypoints = np.array([20, 20, 20, 20, 20])
     ypoints = np.array([15, 10, 5, 3, 2])
-    #ypoints = np.array([2, 2, 2, 2, 2])
     xnsp, ynsp, vnsp = least_sq(xpoints, ypoints, nsp_fun, v0, xmax=None)
     p3minimum = 1. / ynsp
 
@@ -3179,8 +3326,6 @@ def fit_p3_edot7(data, a=-0.9, y0=0.7):
     print("SIGMA: ", sigma)
     p3s_model, edots_model, p3s_true, edots_true = genp3(edots, true, para, vp, nsp_fun, vnsp, sigma, edot_min)
 
-
-
     # randomize observations
     #"""
     for zz in range(len(p3s10)):
@@ -3243,4 +3388,262 @@ def fit_p3_edot7(data, a=-0.9, y0=0.7):
     filename = "output/fit_p3_edot7.pdf"
     print(filename)
     pl.savefig(filename)
+    pl.show()
+
+
+def check_p3edot_geoff(data):
+
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+    periods = np.array(data[17])
+    pdots = np.array(data[18])
+
+    xi_xs = []
+    for i, p in enumerate(periods):
+        val = p ** (-1.78) * (pdots[i]/1e-15)
+        xi_xs.append(val)
+    xi_xs = np.array(xi_xs)
+
+    p3s10 = np.log10(p3s)
+    ep3s10 = np.log10(ep3s)
+    edots10 = np.log10(edots)
+
+    p3s10_rand = np.empty(len(p3s))
+    p3s_rand = np.empty(len(p3s))
+
+    edot_break = 7e30
+    p3s_low = []
+    ep3s_low = []
+    edots_low = []
+
+    p3s_high = []
+    ep3s_high = []
+    edots_high = []
+
+    for i, edot in enumerate(edots):
+        if edot <= edot_break:
+            p3s_low.append(p3s[i])
+            ep3s_low.append(ep3s[i])
+            edots_low.append(edots[i])
+        else:
+            p3s_high.append(p3s[i])
+            ep3s_high.append(ep3s[i])
+            edots_high.append(edots[i])
+
+    p3s_low = np.array(p3s_low)
+    ep3s_low = np.array(ep3s_low)
+    edots_low = np.array(edots_low)
+    p3s_high = np.array(p3s_high)
+    ep3s_high = np.array(ep3s_high)
+    edots_high = np.array(edots_high)
+
+    # alised values
+    #p3aliased = lambda p3, n: p3 / (1  - n * p3)
+    def p3aliased(p3, n):
+        if type(p3) == np.float64 or type(p3) == float:
+            if p3 > 1:
+                return p3 / (n * p3 - 1)
+            elif p3 == 1:
+                return 100.
+            else:
+                return p3 / (1 - n * p3)
+        else:
+            res = []
+            for p3_ in p3:
+                if p3_ > 1:
+                    res.append(p3_ / (n * p3_ - 1))
+                elif p3_ == 0:
+                    res.append(200)
+                elif p3_ < 1:
+                    res.append(p3 / (1 - n * p3))
+            return np.array(res)
+
+    # dependence in question
+    #p3fun = lambda x, w, th: np.fabs(1 / (1 - w / (x - th)))
+    def p3fun(xs, w, th):
+        if type(xs) == np.float64:
+            if xs != th:
+                return np.fabs(1 / (1 - w / (xs - th)))
+            else:
+                return 1.
+        else:
+            res = []
+            for x in xs:
+                if x != th:
+                    res.append(np.fabs(1 / (1 - w / (x - th))))
+                else:
+                    res.append(1)
+            return np.array(res)
+
+
+    w = 1.271 #1 #1 # 0.5 # 6.32 # 9.65
+    th = -1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+
+    # get minimum/maximum value
+    xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
+    yt = p3fun(xt, w, th)
+    p3m_max = np.max(yt)
+    p3m_min = np.min(yt)
+
+    # model data
+    p3s_notobs = []
+    xs_notobs = []
+    p3s_model = np.empty(len(p3s))
+    xs_model = np.empty(len(p3s))
+
+    n = 1
+    sigma = np.std(p3s10)
+    print("SIGMA: ", sigma)
+    sigma = np.std(np.log10(p3s_low))
+    print("SIGMA low: ", sigma)
+
+    for k in range(len(xi_xs)):
+        #print(edots10[k], "nsp=", nsp)
+        p3m = p3fun(xi_xs[k], w, th)
+        p3 = 10 ** np.random.normal(np.log10(p3m), sigma)
+        #p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(0.9*p3m)))
+        if p3 > 2:
+            p3s_model[k] = p3
+            xs_model[k] = xi_xs[k]
+        else:
+            p3obs = p3aliased(p3, n)
+            kk = 1
+            while p3obs < 2:
+                p3 = 10 ** np.random.normal(np.log10(p3m), sigma)
+                #p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(0.9*p3m)))
+                #if p3obs < 2:
+                p3obs = p3aliased(p3, n)
+                kk +=1
+                if kk == 10:
+                    break
+                    p3obs = 100
+            p3s_notobs.append(p3)
+            xs_notobs.append(xi_xs[k])
+            #print(p3obs)
+            p3s_model[k] = p3obs
+            xs_model[k] = xi_xs[k]
+
+        """
+        p3 = 10 ** np.random.normal(np.log10(p3m), sigma)
+        #p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(0.9*p3m)))
+        if p3 > 2:
+            p3s_model[k] = p3
+            xs_model[k] = xi_xs[k]
+        else:
+            p3obs = p3aliased(p3, n)
+            while p3obs < 2:
+                #p3 = 10 ** np.random.normal(np.log10(p3m), sigma)
+                p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(0.9*p3m)))
+                p3obs = p3aliased(p3, n)
+            p3s_notobs.append(p3)
+            xs_notobs.append(xi_xs[k])
+            #print(p3obs)
+            p3s_model[k] = p3obs
+            xs_model[k] = xi_xs[k]
+        #"""
+
+        """
+        elif p3 < 1 / nsp:
+            p3 = np.random.normal(1 / nsp, sigma)
+            while p3 < 1 / nsp:
+                p3 = np.random.normal(1 / nsp, sigma)
+            if p3 >= two10:
+                p3s_model[k] = p3
+                edots_model[k] = edots10[k]
+                cpp = 1 / 10 ** p3
+                cpps.append(cpp)
+                ecpps.append(edots10[k])
+            else:
+                p3s_notobs.append(p3)
+                edots_notobs.append(edots10[k])
+                p3obs = None # not in log scale
+                for n in range(1000):
+                    p3nolog = 10 ** p3
+                    p3obss = np.abs(p3nolog / (1 - n * p3nolog))
+                    if p3obss > 2:
+                        p3obs = p3obss
+                        cpp = 1 / p3obs
+                        cpps.append(cpp)
+                        ecpps.append(edots10[k])
+                        if edots10[k] > 34:
+                            print(" n ", n, " ", cpp, " edot ", edots10[k])
+                        break
+                if p3obs != None:
+                    p3s_model[k] = np.log10(p3obs) # it is ok
+                    edots_model[k] = edots10[k]
+        else:
+            p3s_notobs.append(p3)
+            edots_notobs.append(edots10[k])
+            p3obs = None # not in log scale
+            for n in range(1000):
+                p3nolog = 10 ** p3
+                p3obss = np.abs(p3nolog / (1 - n * p3nolog))
+                if p3obss > 2:
+                    p3obs = p3obss
+                    cpp = 1 / p3obs
+                    cpps.append(cpp)
+                    ecpps.append(edots10[k])
+                    if edots10[k] > 34:
+                        print(" n ", n, " ", cpp, " edot ", edots10[k])
+                    break
+            if p3obs != None:
+                p3s_model[k] = np.log10(p3obs) # it is ok
+                edots_model[k] = edots10[k]
+                """
+
+    # randomize observations
+    #"""
+    for zz in range(len(p3s10)):
+        ran = np.random.normal(p3s[zz], ep3s[zz])
+        while ran < 2:
+            ran = np.random.normal(p3s[zz], ep3s[zz])
+        p3s10_rand[zz] = np.log10(ran)
+        p3s_rand[zz] = ran
+        #print("p3 ", p3s[zz], "new p3", ran, "error", ep3s[zz])
+        #p3s10_rand[zz] = p3s10[zz] # not random
+    #"""
+
+    """
+    pl.figure()
+    pl.minorticks_on()
+    pl.scatter(xi_xs, p3s_rand, alpha=0.7, ec="None")
+    pl.scatter(xs_model, p3s_model, alpha=0.7, ec="None")
+    pl.scatter(xs_notobs, p3s_notobs, c="tab:grey", s=3, alpha=0.7)
+
+    pl.loglog()
+    pl.show()
+    """
+
+    pvals, xpvals, pvals_bin, xpvals_bin = da.calculate_divergance(p3s_rand, p3s_model, edots10, ep3s, sample=30)
+    #pvals, xpvals, pvals_bin, xpvals_bin = calculate_divergance(p3s10, p3s_model, edots10, ep3s) # Note ep3s not ep3s10 (is it fine..?)
+
+    divergence = len([pv for pv in pvals if pv < 0.05])
+    print("Divergence: ", divergence)
+
+    pl.figure(figsize=(13.149606, 13.946563744))
+    pl.subplot(2,1,1)
+    pl.minorticks_on()
+    pl.scatter(xi_xs, p3s_rand, alpha=0.5, ec="None")
+    pl.scatter(xs_model, p3s_model, alpha=0.5, ec="None")
+    pl.scatter(xs_notobs, p3s_notobs)
+    pl.plot(xt, yt, c="black")
+    #pl.plot(xline, yline)
+    pl.axhline(y=2, ls=":", c="black")
+    xlims = pl.xlim()
+    pl.loglog()
+    pl.subplot(2,1,2)
+    pl.minorticks_on()
+    #pl.scatter(xpvals, pvals)
+    try:
+        pl.plot(xpvals_bin, pvals_bin, lw=2, c="C1")
+    except:
+        pass
+    pl.axhline(y=0.05, c="C2", ls="--")
+    #pl.xlim(xlims[0], xlims[1])
+    #pl.scatter(edots10, sigs, c="green")
+    filename = "output/check_p3edot.pdf"
+    print(filename)
+    pl.savefig(filename)
+
     pl.show()

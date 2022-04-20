@@ -195,9 +195,19 @@ def fit_p3_edot5():
     pl.fit_p3_edot5(d1)
 
 
+def fit_p3_edot6():
+    d1 = da.p3dominant_driftonly()
+    pl.fit_p3_edot6(d1)
+
+
 def fit_p3_edot7():
     d1 = da.p3dominant_driftonly()
     pl.fit_p3_edot7(d1)
+
+
+def check_p3edot_geoff():
+    d1 = da.p3dominant_driftonly()
+    pl.check_p3edot_geoff(d1)
 
 
 def main():
@@ -236,7 +246,9 @@ def main():
     #fit_p3_edot3()
     #fit_p3_edot4()
     #fit_p3_edot5()
-    fit_p3_edot7()
+    #fit_p3_edot6() # this one!
+    #fit_p3_edot7()
+    check_p3edot_geoff()
 
 
     print("Bye")
