@@ -206,8 +206,15 @@ def fit_p3_edot7():
 
 
 def check_p3edot_geoff():
+    da.fit_line()
     d1 = da.p3dominant_driftonly()
     pl.check_p3edot_geoff(d1)
+
+
+def p3edot_distributions():
+    d1 = da.p3dominant_driftonly()
+    pl.p3edot_distributions(d1)
+
 
 
 def main():
@@ -248,7 +255,8 @@ def main():
     #fit_p3_edot5()
     #fit_p3_edot6() # this one!
     #fit_p3_edot7()
-    check_p3edot_geoff()
+    #check_p3edot_geoff()
+    p3edot_distributions()
 
 
     print("Bye")

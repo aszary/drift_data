@@ -5,6 +5,7 @@ module Simulation
     using Random, Distributions
     using HypothesisTests
     using PyCall
+    using MultipleTesting
     @pyimport scipy.stats as stats
 
 
@@ -99,12 +100,12 @@ module Simulation
 
 
 
-    function calculate_pvals(data1, data2, edots, sample=30)
+    function calculate_pvals(data1, data2, xdata, sample=30)
 
-        i = sortperm(edots)
+        i = sortperm(xdata)
         d1 = data1[i]
         d2 = data2[i]
-        xd = edots[i]
+        xd = xdata[i]
 
         rngs = collect(range(1, step=sample, stop=length(xd)))
         if rngs[end] < length(xd)
@@ -143,7 +144,7 @@ module Simulation
     end
 
 
-    function best_p3edot(;y=(-1.5, 1.5), a=(-1.0, 1.0), size_=100, repeat=100, filename="../data/p3_edot.txt" ) #, filename="../data/p3_edot-synthetic.txt")
+    function best_p3edot(;y=(-1.5, 1.5), a=(-1.0, 1.0), size_=10, repeat=10, filename="../data/p3_edot.txt" ) #, filename="../data/p3_edot-synthetic.txt")
         p3s, ep3s, edots = read_data(filename) #; edot_min=4e31) #; edot_min=5e32) #  edot_max!!! # HERE HERE HERE
         ys = range(y[1], y[2], length=size_)
         as = range(a[1], a[2], length=size_)
@@ -613,9 +614,7 @@ module Simulation
     end
 
 
-    """
-    Using Geoff's fit
-    """
+    """   Using Geoff's fit   """
     function best_p3edot_geoff(;w=(0.5, 1.5), t=(-1.5, -0.5), size_=100, repeat=100, filename="../data/p3_ppdotedot.txt")
         # values not in log scale
         p3s, ep3s, periods, pdots, edots = read_data2(filename) #; edot_max=4e31) #; edot_min=4e31) #; edot_min=5e32) #  edot_max!!! # HERE HERE HERE
@@ -629,7 +628,6 @@ module Simulation
         ws = range(w[1], w[2], length=size_)
         ts = range(t[1], t[2], length=size_)
         x_th = 7e30 # low - high edot
-
 
         p3s_obs = Array{Float64}(undef, obsnum)
         p3s_model = Array{Float64}(undef, obsnum)
@@ -652,10 +650,17 @@ module Simulation
             end
         end
 
-        # dependence in question
+        """ dependence in question """
         function p3fun(x, w, t)
             return abs(1 / (1 - w / (x - t)))
         end
+
+        # sigma dependence
+        @. sigma_fun(x, p) = p[1] + p[2] * x
+        xpoints = [-3, 4]
+        ypoints = [1, 0.1]
+        fit = curve_fit(sigma_fun, xpoints, ypoints, [1., 1.])
+        psig = coef(fit)
 
         n = 1
         sigma = std(log10.(p3s))
@@ -663,8 +668,6 @@ module Simulation
             for j in 1:size_
                 w_ = ws[i]
                 t_ = ts[j]
-                #w_ = 1.0
-                #t_ = -1.05
                 xline = 10 .^ range(-3, 4, length=100)
                 yline = p3fun.(xline, w_, t_)
                 p3s_notobs = []
@@ -676,7 +679,21 @@ module Simulation
                     # generate p3
                     for ii in 1:length(xi_xs)
                         p3m = p3fun(xi_xs[ii], w_, t_)
-                        p3 = 10 ^ rand(Normal(log10(p3m), sigma))
+                        #sig = sigma_fun(log10(xi_xs[ii]), psig) * sigma
+                        if p3m > 2
+                            sig = sigma
+                        else
+                            sig = sigma_fun(log10(xi_xs[ii]), psig) * sigma
+                        end
+
+                        p3 = 10 ^ rand(Normal(log10(p3m), sig))
+                        #=
+                        if p3m > 1.3
+                            p3 = 10 ^ rand(Normal(log10(p3m), sigma))
+                        else
+                            p3 = 10 ^ rand(Normal(log10(p3m), 0.2 * sigma))
+                        end
+                        =#
                         if p3 > 2
                             p3s_model[ii] = p3
                             xs_model[ii] = xi_xs[ii]
@@ -684,14 +701,18 @@ module Simulation
                             p3obs = p3aliased(p3, n)
                             kk = 1
                             while p3obs < 2
-                                p3 = 10 ^ rand(Normal(log10(p3m), sigma))
-                                p3obs = p3aliased(p3, n)
+                                p3 = 10 ^ rand(Normal(log10(p3m), sig))
+                                #p3 = 10 ^ rand(Normal(log10(p3m), 0.2*sigma))
+                                if p3 < 2
+                                    p3obs = p3aliased(p3, n)
+                                else
+                                    p3obs = p3
+                                end
                                 kk += 1
-                                if kk == 1000
+                                if kk == 100
                                     p3obs = 100
                                     break
                                 end
-
                             end
                             p3s_model[ii] = p3obs
                             xs_model[ii] = xi_xs[ii]
@@ -712,14 +733,22 @@ module Simulation
                     end
 
                     if skip != true
-                        pvals, xpvals = calculate_pvals(p3s_obs, p3s_model, edots)
-                        t_tests[i, j, k] = length([pv for pv in pvals if pv < 0.05])
+                        pvals, xpvals = calculate_pvals(p3s_obs, p3s_model, xi_xs)
+                        #pvals, xpvals = calculate_pvals(p3s_obs, p3s_model, edots)
+                        t_tests[i, j, k] = length([pv for pv in pvals if pv < 0.01])
+                        #t_tests[i, j, k] = minimum(pvals)
+                        #t_tests[i, j, k] = combine(pvals, Fisher())
+                        #println("k ", k, " ", t_tests[i, j, k])
+                        #t_tests[i, j, k] = mean(pvals)
+                        #t_tests[i, j, k] = median(pvals)
                     else
-                        t_tests[i, j, k] = 11
+                        t_tests[i, j, k] = 0
+                        println("ERROR - skip!")
+                        return
                     end
                 end # k
 
-                println("w = $w_ t = $t_ ", trunc(mean(t_tests[i, j, :])))
+                #println("w = $w_ t = $t_ ", mean(t_tests[i, j, :]))
                 #=
                     figure(figsize=(13.149606, 13.946563744))
                     subplot(2,1,1)
@@ -746,11 +775,17 @@ module Simulation
                         return
                     end
                 =#
-                t_test[i, j] = trunc(mean(t_tests[i, j, :]))
+                #t_test[i, j] = trunc(mean(t_tests[i, j, :]))
+                t_test[i, j] = mean(t_tests[i, j, :])
+                #t_test[i, j] = combine(t_tests[i, j, :], Fisher())
+                #println(t_test[i, j])
+                #if t_test[i, j] < 0.05
+                #    t_test[i, j] = 0.04
+                #println("$t_ $w_")
+                #end
                 #t_test[i, j] = minimum(t_tests[i, j, :])
             end # j
         end # i
-        #return
 
         print(size(t_test))
         figure(figsize=(13.149606, 13.946563744))
@@ -761,15 +796,14 @@ module Simulation
         xlabel("t?")
         ylabel("w?")
 
-        ticks = range(0, stop=10, length=11)
+        ticks = vcat(minimum(t_test), collect(range(1, stop=10, length=10)))
         colorbar(ticks=ticks)
+        #colorbar()
         savefig("best_p3edot_geoff.pdf")
         show()
         q = readline(stdin; keep=false)
         PyPlot.close()
-
     end
-
 
 
 

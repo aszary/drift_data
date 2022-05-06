@@ -1760,3 +1760,22 @@ def p3dominant_driftonly_edotinfo(filename="data/stats.csv", thresh=5e32):
     #print(edots)
     #print(st)
     return
+
+""" fits line to output/line.txt (result of best_p3edot_geoff in bestp3_edot.jl)"""
+def fit_line():
+    x = []
+    y = []
+    f = open("output/line.txt")
+    lines = f.readlines()
+    for line in lines:
+        res = line.split()
+        x.append(float(res[0]))
+        y.append(float(res[1]))
+    x = np.array(x)
+    y = np.array(y)
+    fun = lambda v, x: v[0] * x + v[1]
+    v0 = [-1, 1]
+    xn, yn, v = least_sq(x, y, fun, v0, xmax=None)
+    print("Fitted parameters:", v)
+    f.close()
+    return fun, v
