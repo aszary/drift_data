@@ -498,6 +498,288 @@ def extractdomp3s(filename="data/stats.csv"):
     return p3s, p3serr, edots, jnames, statsndomfeature #return the table too
 
 
+
+def p3plusp2(filename="data/stats.csv"):
+    p3s = []
+    p3serr = []
+    p3ws = []
+    p3wserr = []
+    p2s = []
+    p2serr_p = []
+    p2serr_m = []
+    edots = []
+    jnames = []
+    p2as = []
+    p2aserr = []
+
+
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+
+    # get P2only pulsars first - no PulsarDominantP3Feature but P2only components (2 pulsars?)
+    st0 = st[(st['Census']=='YES') & (st["IgnoreBecauseOfScattering"]!="ignore") & (st['PulsarDominantP3Feature'].mask==True)]
+    # checking all components
+    for i in range(1,3):
+        for j in range(1, 6):
+            fename = "MP_C{}_F{}".format(i, j)
+            st0 = st0[st0[fename] == "P2only"]
+            for row in st0:
+                feature = fename.replace("_", " ")
+                p3s.append("--")
+                p3serr.append("--")
+                # dominant (and only one probably)
+                p2s.append(float(row[feature + ': P2_value']))
+                p2serr_p.append(float(row[feature + ': P2_error_plus']))
+                p2serr_m.append(float(row[feature + ': P2_error_minus']))
+                p3ws.append("--")
+                p3wserr.append("--")
+                edots.append(row['Edot [ergs/s]'])
+                jnames.append(row["JName_paper"])
+                # P2 assymetry
+                c = feature[4]
+                # the dominant feature
+                p2as.append(float(row["C{} Power".format(c)]))
+                p2aserr.append(float(row["C{} PowerErr".format(c)]))
+    # interpulses # not implemented - not really needed
+    for i in range(1,3):
+        for j in range(1, 6):
+            fename = "IP_C{}_F{}".format(i, j)
+
+    # get rest of the pulsars
+    st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False) & (st["IgnoreBecauseOfScattering"]!="ignore")]
+    st["Edot [ergs/s]"] = st["Edot [ergs/s]"].astype(float)
+    for row in st:
+        compn = row['PulsarDominantP3Feature']
+        mip, comp = compn.split()
+        dname = mip+'dominantDriftFeature_' + comp
+        pname = mip+'dominantP3Feature_' + comp
+        # if DriftFeature and P3feature both defined, choose the drift feature; if only DriftFeature or P3feature, take that one.
+        # kind of strange, but works
+        if float(row[dname]) > 0 and float(row[pname]) > 0:
+            fn = 'F'+str(row[dname])
+        elif float(row[dname]) > 0:
+            fn = 'F'+str(row[dname])
+        elif float(row[pname]) > 0:
+            fn = 'F'+str(row[pname])
+        feature = mip + ' ' + comp + ' ' + fn
+        p3s.append(float(row[feature + ': P3_value']))
+        p3serr.append(float(row[feature + ': P3_error']))
+        # P2 the lowest value
+        """
+        if row[feature.replace(" ", "_")] == "P3only":
+            p2s.append("--")
+            p2serr_p.append("--")
+            p2serr_m.append("--")
+        else:
+            p2, p2ep, p2em = get_smallest_p2(row)
+            p2s.append(p2)
+            p2serr_p.append(p2ep)
+            p2serr_m.append(p2em)
+        """
+        # p2 for the dominant drift or p3 feature (not the lowest value?!)
+        if row[feature.replace(" ", "_")] == "P3only": # removes very P2 values! ASK ABOUT IT!!!
+            p2s.append("--")
+            p2serr_p.append("--")
+            p2serr_m.append("--")
+        else:
+            p2s.append(float(row[feature + ': P2_value']))
+            p2serr_p.append(float(row[feature + ': P2_error_plus']))
+            p2serr_m.append(float(row[feature + ': P2_error_minus']))
+        p3ws.append(float(row[feature + ': P3_stddev_value']))
+        p3wserr.append(float(row[feature + ': P3_stddev_error']))
+        edots.append(row['Edot [ergs/s]'])
+        jnames.append(row["JName_paper"])
+        # P2 assymetry
+        comps = row["{} 2dfs nrs".format(mip)].split(",") # get component numbers
+        p2a_all = []
+        p2ae_all = []
+        # TODO change to the dominant feature
+        # maximum value of P2assymetry
+        """
+        for c in comps:
+            p2a_all.append(float(row["C{} Power".format(c)]))
+            p2ae_all.append(float(row["C{} PowerErr".format(c)]))
+        ind = np.argmax(p2a_all)
+        p2as.append(p2a_all[ind])
+        p2aserr.append(p2ae_all[ind])
+        """
+        # dominant component value
+        p2as.append(float(row["{} Power".format(comp)]))
+        p2aserr.append(float(row["{} PowerErr".format(comp)]))
+        """
+        for ii in range(4):
+            print(mip, comp)
+            print(row["MP 2dfs nrs"])
+            print(ii, row["JName_paper"], row["C{} phase left".format(ii+1)])
+        """
+    #print(st)
+    #print(len(p3s), len(p3serr), len(p3ws), len(p3wserr), len(p2s), len(p2serr_p), len(p2serr_m), len(p2as), len(p2aserr), len(edots), len(jnames))
+    #exit()
+    ind = np.argsort(jnames)
+    p3s = np.array(p3s)[ind]
+    p3serr = np.array(p3serr)[ind]
+    p3ws = np.array(p3ws)[ind]
+    p3wserr = np.array(p3wserr)[ind]
+    p2s = np.array(p2s)[ind]
+    p2serr_p = np.array(p2serr_p)[ind]
+    p2serr_m = np.array(p2serr_m)[ind]
+    p2as = np.array(p2as)[ind]
+    p2aserr = np.array(p2aserr)[ind]
+    edots = np.array(edots)[ind]
+    jnames = np.array(jnames)[ind]
+    return p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames
+
+
+def p3plusp2_full(filename="data/stats.csv"):
+
+    jnames = []
+    ps = []
+    pdots = []
+    edots = []
+    bs = []
+    blcs = []
+    ages = []
+    s1400s = []
+    w10s = []
+    w50s = []
+    ip = []
+
+    obsnames = []
+    nants = []
+    npulses = []
+    snrs = []
+    fftlengths = []
+    avmods = []
+    avmodeserr = []
+    #avmods_ip = []
+    #avmodserr_ip = []
+    mp_data = []
+    ip_data = []
+
+    # P2only pulsars should be included
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+    st = st[(st['Census']=='YES')& (st["IgnoreBecauseOfScattering"]!="ignore")]
+    st["Edot [ergs/s]"] = st["Edot [ergs/s]"].astype(float)
+    for row in st:
+        data1 = []
+        comps = row["MP 2dfs nrs"].split(",")
+        #mask = ce["MP_C{}_F{}".format(i, j)] == "drift"
+        for c in comps: # using 2dfs numbers as component numbers
+            df = row["MPdominantDriftFeature_C{}".format(c)]
+            try:
+                df = int(df)
+            except:
+                df = 0
+            p3f = row["MPdominantP3Feature_C{}".format(c)]
+            try:
+                p3f = int(p3f)
+            except:
+                p3f = 0
+            for f in range(1,6):
+                if row["MP_C{}_F{}".format(c, f)] == "P3only":
+                    p3 = row["MP C{} F{}: P3_value".format(c, f)]
+                    p3err = row["MP C{} F{}: P3_error".format(c, f)]
+                    type_ = "P3only"
+                    if f == p3f:
+                        data1.insert(0, [type_, p3, p3err, None, None, None])
+                    else:
+                        data1.append([type_, p3, p3err, None, None, None])
+                elif row["MP_C{}_F{}".format(c, f)] == "drift":
+                    p3 = row["MP C{} F{}: P3_value".format(c, f)]
+                    p3err = row["MP C{} F{}: P3_error".format(c, f)]
+                    p2 = row["MP C{} F{}: P2_value".format(c, f)]
+                    p2pl = row["MP C{} F{}: P2_error_plus".format(c, f)]
+                    p2mi = row["MP C{} F{}: P2_error_minus".format(c, f)]
+                    type_ = "drift"
+                    if f == df:
+                        data1.insert(0, [type_, p3, p3err, p2, p2pl, p2mi])
+                    else:
+                        data1.append([type_, p3, p3err, p2, p2pl, p2mi])
+                elif row["MP_C{}_F{}".format(c, f)] == "P2only":
+                    p2 = row["MP C{} F{}: P2_value".format(c, f)]
+                    p2pl = row["MP C{} F{}: P2_error_plus".format(c, f)]
+                    p2mi = row["MP C{} F{}: P2_error_minus".format(c, f)]
+                    type_ = "P2only"
+                    data1.append([type_, None, None, p2, p2pl, p2mi])
+        data2 = []
+        comps = row["IP 2dfs nrs"].split(",")
+        #mask = ce["MP_C{}_F{}".format(i, j)] == "drift"
+        for c, cc in enumerate(comps): # using index of 2dfs numbers as components numbers
+            try:
+                cc = int(cc)
+            except:
+                break
+            c += 1
+            df = row["IPdominantDriftFeature_C{}".format(c)]
+            p3f = row["IPdominantP3Feature_C{}".format(c)]
+            try:
+                df = int(df)
+            except:
+                df = 0
+            try:
+                p3f = int(p3f)
+            except:
+                p3f = 0
+            for f in range(1,6):
+                if row["IP_C{}_F{}".format(c, f)] == "P3only":
+                    p3 = row["IP C{} F{}: P3_value".format(c, f)]
+                    p3err = row["IP C{} F{}: P3_error".format(c, f)]
+                    type_ = "P3only"
+                    if f == p3f:
+                        data2.insert(0, [type_, p3, p3err, None, None, None])
+                    else:
+                        data2.append([type_, p3, p3err, None, None, None])
+                elif row["IP_C{}_F{}".format(c, f)] == "drift":
+                    p3 = row["IP C{} F{}: P3_value".format(c, f)]
+                    p3err = row["IP C{} F{}: P3_error".format(c, f)]
+                    p2 = row["IP C{} F{}: P2_value".format(c, f)]
+                    p2pl = row["IP C{} F{}: P2_error_plus".format(c, f)]
+                    p2mi = row["IP C{} F{}: P2_error_minus".format(c, f)]
+                    type_ = "drift"
+                    if f == df:
+                        data2.insert(0, [type_, p3, p3err, p2, p2pl, p2mi])
+                    else:
+                        data2.append([type_, p3, p3err, p2, p2pl, p2mi])
+                elif row["IP_C{}_F{}".format(c, f)] == "P2only":
+                    p2 = row["IP C{} F{}: P2_value".format(c, f)]
+                    p2pl = row["IP C{} F{}: P2_error_plus".format(c, f)]
+                    p2mi = row["IP C{} F{}: P2_error_minus".format(c, f)]
+                    type_ = "P2only"
+                    data2.append([type_, None, None, p2, p2pl, p2mi])
+        if len(data1) > 0:
+            mp_data.append(data1)
+            if len(data2) > 0:
+                ip_data.append(data2)
+            else:
+                ip_data.append([])
+            jnames.append(row["JName_paper"])
+            ps.append(float(row["Period [s]"]))
+            pdots.append(float(row["Pdot [s/s]"]))
+            edots.append(float(row['Edot [ergs/s]']))
+            bs.append(float(row["Bsurf [G]"]))
+            blcs.append(float(row["Blc [G]"]))
+            #if float(row["Blc [G]"]) < 1e-3:
+            #    print(row["JName_paper"], row["Blc [G]"])
+            ages.append(float(row["Age [yr]"]))
+            s1400s.append(row["S1400 [mJy]"])
+            w10s.append(row["W10 [ms]"])
+            w50s.append(row["W50 [ms]"])
+            obsnames.append(row["Obsname"])
+            nants.append(int(row["NrAnts"]))
+            npulses.append(int(row["NrPulsesUsuable"]))
+            snrs.append(float(row["SNRclean"]))
+            fftlengths.append(int(row["FFT length (used)"]))
+            avmods.append(row["AvMod"])
+            avmodeserr.append(row["AvModErr"])
+
+
+    # TODO add sorting here (if needed)
+    #ind = np.argsort(jnames)
+
+
+    return jnames, ps, pdots, edots, bs, blcs, ages, s1400s, w10s, w50s, obsnames, nants, npulses, snrs, fftlengths, avmods, avmodeserr, mp_data, ip_data
+
+
+
 def p3dominant(filename="data/stats.csv"):
     p3s = []
     p3serr = []
@@ -566,8 +848,6 @@ def p3dominant(filename="data/stats.csv"):
             print(row["MP 2dfs nrs"])
             print(ii, row["JName_paper"], row["C{} phase left".format(ii+1)])
         """
-
-
     #print(st)
     return p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames
 
@@ -911,7 +1191,165 @@ def table_2(filename="data/stats.csv"):
     f.close()
 
 
+def table_3(filename="data/stats.csv"):
+    #p3s, p3serr, edots, jnames, tabb = extractdomp3s(filename)
+    p3s, p3serr, p3ws, p3wserr, p2s, p2serr_p, p2serr_m, p2as, p2aserr, edots, jnames = p3plusp2(filename)
+
+    # manual table generation
+    tab_st = r"""
+\begin{table*}
+\caption{List of Pulsars with detectable $P_3$ or $P_2$}
+\centering
+\begin{tabular}{ccccc|ccccc|ccccc|ccccc}
+\hline
+  Pulsar & $P_3$ & $\sigma_{P/P_3}$ &  $P_2$ &  $P_{\rm asym}$ & Pulsar & $P_3$ & $\sigma_{P/P_3}$ &  $P_2$ &  $P_{\rm asym}$ & Pulsar & $P_3$ & $\sigma_{P/P_3}$ &  $P_2$ &  $P_{\rm asym}$ & Pulsar & $P_3$ & $\sigma_{P/P_3}$ &  $P_2$ &  $P_{\rm asym}$ \\
+   & (in $P$) & ($10^{-3}$cpp) &  $(^{\circ})$ &  $(\%)$ &  &  (in $P$) & ($10^{-3}$cpp) & $(^{\circ})$ & $(\%)$ &  & (in $P$) & ($10^{-3}$ cpp) &  $(^{\circ})$ &  $(\%)$ &  & (in $P$) & ($10^{-3}$cpp) &  $(^{\circ})$ &  $(\%)$ \\
+   % & & $10^{-2}$ & & & & & $10^{-2}$ & & & & & $10^{-2}$ & & & & & $10^{-2}$ & & \\
+\hline
+    """
+
+    tab_end = r"""\hline
+\end{tabular}
+\label{tab:p3s}
+\medskip
+\end{table*}
+    """
+
+    pages = 4
+
+    p3s = np.array_split(np.array(p3s), pages)
+    p3serr = np.array_split(np.array(p3serr), pages)
+    p3ws = np.array_split(np.array(p3ws), pages)
+    p3wserr = np.array_split(np.array(p3wserr), pages)
+    p2s = np.array_split(np.array(p2s), pages)
+    p2serr_p = np.array_split(np.array(p2serr_p), pages)
+    p2serr_m = np.array_split(np.array(p2serr_m), pages)
+    p2as = np.array_split(np.array(p2as), pages)
+    p2aserr = np.array_split(np.array(p2aserr), pages)
+    jnames = np.array_split(np.array(jnames), pages)
+
+
+    f = open("output/table_3.tex", "w")
+
+    for i in range(pages):
+
+        colnum = 4
+
+        p3s_ = np.array_split(np.array(p3s[i]), colnum)
+        p3serr_ = np.array_split(np.array(p3serr[i]), colnum)
+        p3ws_ = np.array_split(np.array(p3ws[i]), colnum)
+        p3wserr_ = np.array_split(np.array(p3wserr[i]), colnum)
+        p2s_ = np.array_split(np.array(p2s[i]), colnum)
+        p2serr_p_ = np.array_split(np.array(p2serr_p[i]), colnum)
+        p2serr_m_ = np.array_split(np.array(p2serr_m[i]), colnum)
+        p2as_ = np.array_split(np.array(p2as[i]), colnum)
+        p2aserr_ = np.array_split(np.array(p2aserr[i]), colnum)
+        jnames_ = np.array_split(np.array(jnames[i]), colnum)
+
+        tab = """ """
+        size = len(p3s_[0])
+
+        for j in range(size):
+            for k in range(colnum):
+                #print(type(p3ws_[k][j])) # why string?
+                #print(type(p3s_[k][j])) # why strings? array_split?
+                try:
+                    tab += "{} & {} & {} & {} & {}".format(jnames_[k][j], P3_error(p3s_[k][j], p3serr_[k][j]), P3w_error(p3ws_[k][j], p3wserr_[k][j]), P2_e(p2s_[k][j], p2serr_p_[k][j], p2serr_m_[k][j]), P2a_error(p2as_[k][j], p2aserr_[k][j]))
+                except IndexError:
+                    tab += " & & & & "
+                if k < colnum-1:
+                     tab += " & "
+                else:
+                     tab += " \\\\ \n "
+
+                """
+            try:
+                tab += "{} & {} & {} & {} & {:.1f} & {} & {} & {} & {:.1f} & {:.1f} & {} & {} & {} & {:.1f} & {:.1f} & {} & {} & {} & {:.1f} & {:.1f} \\\\ \n ".format(
+                    ,
+                    jnames_[1][j], P3_error(p3s_[1][j], p3serr_[1][j]), P3w_error(p3ws_[1][j], p3wserr_[1][j]), P2_e(p2s_[1][j], p2serr_p_[1][j], p2serr_m_[1][j]), p2as_[1][j],
+                    jnames_[2][j], P3_error(p3s_[2][j], p3serr_[2][j]), P3w_error(p3ws_[2][j], p3wserr_[2][j]), p2s_[2][j], p2as_[2][j],
+                    jnames_[3][j], P3_error(p3s_[3][j], p3serr_[3][j]), P3w_error(p3ws_[3][j], p3wserr_[3][j]), p2s_[3][j], p2as_[3][j])
+            except IndexError:
+                #tab += "{} & {} & {} & {} & {} & {} & {} & {} & {} & {} & {} & {}\\".format(i, jnames[0][i], -1, -1, i+size, jnames[1][i], -1, -1, "", "", "", "")
+                tab += ""
+                # TODO some records are missing!
+                """
+        #print(len(p3s[2]))
+        f.write(79*"%" + "\n")
+        f.write("% PAGE {}".format(i+1) + "\n")
+        f.write(79*"%" + "\n")
+        f.write(tab_st + tab + tab_end + "\n")
+
+    f.close()
+
+
+
+def table_4(filename="data/stats.csv"):
+    jnames, ps, pdots, edots, bs, blcs, ages, s1400s, w10s, w50s, obsnames, nants, npulses, snrs, fftlengths, avmods, avmodeserr, mp_data, ip_data = p3plusp2_full(filename)
+
+    # manual table generation
+    tab_st = r"""
+\begin{table*}
+\caption{TODO add caption...}
+\centering
+\begin{tabular}{cccccccccc}
+\toprule
+Pulsar & $P$ & $\dot{P}$ & $\dot{E}$ & $B_{\rm s}$ & $B_{\rm LC}$ & Age & $S_{1400}$ & $W_{10}$ & $W_{50}$ \\
+ & (s)  &  ($10^{-15}$ s/s)  &  ($10^{33}$ ergs/s) & ($10^{12}$G) & ? & (Myrs) & (mJy) & (ms) & (ms) \\ \cmidrule[0.1pt]{3-10}
+\multicolumn{3}{r}{Obsname} & $ N_{\rm ants}$ & $N_{\rm pulses}$ & $S/N$ & FFT & $\bar{m}$ \\
+\toprule
+    """
+
+    tab_end = r"""\hline
+\end{tabular}
+\label{tab:all_data}
+\medskip
+\end{table*}
+    """
+
+    tab = " "
+
+    for i, name in enumerate(jnames):
+        tab += "\specialrule{0.1pt}{1pt}{1pt} \n"
+        # \cmidrule[0.1pt]{{3-10}}
+        # \specialrule{0.1pt}{1pt}{1pt}
+        tab +=  "{} & {} & {} & {} & {} & {} & {} & {} & {} & {} \\\\ \\cmidrule[0.1pt]{{3-10}}  \n".format(name, ps[i], pdots[i]/1e-15, edots[i]/1e33, bs[i]/1e12, blcs[i], ages[i]/1e6, tof(s1400s[i]), tof(w10s[i]), tof(w50s[i]))
+        #nants, npulses, snrs, fftlengths, avmods, avmodeserr
+        #tab += "\multicolumn{3}{r}{Obsname} & $ N_{\\rm ants}$ & $N_{\\rm pulses}$ & $S/N$ & FFT & $\\bar{m}$ \\\\ \n "
+        tab += "\multicolumn{{3}}{{r}}{{ {} }} & {} &  {} & {} & {} & {} \\\\ \n".format(obsnames[i], nants[i], npulses[i], snrs[i], fftlengths[i], avmods[i])
+        # main pulse components
+        for mp in mp_data[i]:
+            if mp[0] == "drift":
+                tab += "\multicolumn{{4}}{{r}}{{ drift }} & {} &  {} & {} & {} & {} \\\\ \n".format(mp[1], mp[2], mp[3], mp[4], mp[5])
+            elif mp[0] == "P3only":
+                tab += "\multicolumn{{4}}{{r}}{{ P3only }} & {} &  {} & -- & -- & -- \\\\ \n".format(mp[1], mp[2])
+            elif mp[0] == "P2only":
+                tab += "\multicolumn{{4}}{{r}}{{ P2only }} & -- &  -- & {} & {} & {} \\\\ \n".format(mp[3], mp[4], mp[5])
+        for ip in ip_data[i]:
+            if ip[0] == "drift":
+                tab += "\multicolumn{{4}}{{r}}{{ IP drift }} & {} &  {} & {} & {} & {} \\\\ \n".format(ip[1], ip[2], ip[3], ip[4], ip[5])
+            elif ip[0] == "P3only":
+                tab += "\multicolumn{{4}}{{r}}{{ IP P3only }} & {} &  {} & -- & -- & -- \\\\ \n".format(ip[1], ip[2])
+            elif ip[0] == "P2only":
+                tab += "\multicolumn{{4}}{{r}}{{ IP P2only }} & -- &  -- & {} & {} & {} \\\\ \n".format(ip[3], ip[4], ip[5])
+        # limit the table records (for test)
+        if i == 10:
+            break
+
+    f = open("output/table_4.tex", "w")
+    f.write(tab_st + tab + tab_end + "\n")
+    f.close()
+
+def tof(s14):
+    try:
+        return float(s14)
+    except ValueError:
+        return "--"
+
+
 def P3_error(p3, p3err):
+    if p3 == "--":
+        return "--"
     p3u = ufloat(float(p3), float(p3err))
     #res = "${:.1uf}$".format(p3u).replace("+/-", "\pm") # OK
     #res = "${:.1ufL}$".format(p3u) # # also OK
@@ -936,9 +1374,11 @@ def P3_error_old(p3, p3err):
     return "${} \pm {}$".format(p3, err)
 
 def P3w_error(p3w, p3werr):
+    if p3w == "--":
+        return "--"
     times = 1000
-    p3w *= times
-    p3werr *= times
+    p3w = float(p3w) * times
+    p3werr = float(p3werr) * times
     p3wu = ufloat(float(p3w), float(p3werr))
     return "${:.1ufS}$".format(p3wu)
     """

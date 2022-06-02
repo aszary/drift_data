@@ -4,6 +4,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.widgets import Slider
 from scipy.stats import ttest_1samp, ks_2samp
 from scipy.optimize import leastsq
+import scipy.stats as stats
 
 from modules.functions import least_sq
 import modules.data as da
@@ -3096,10 +3097,14 @@ def fit_p3_edot6(data):
     for i, x in enumerate(xt):
         yo[i] = p3_obs(vobs, x)
 
+    xor = np.logspace(np.log10(1), np.log10(1e4), num=10000)
+    yor = p3fun(xor, 1, 0)
+    yor2 = np.empty(xor.size)
+    for i, x in enumerate(xor):
+        yor2[i] = p3_obs([1,0], x)
 
     # fitting line
     f, v = da.fit_line()
-
 
     pl.rc("font", size=12)
     pl.rc("axes", linewidth=0.5)
@@ -3117,6 +3122,8 @@ def fit_p3_edot6(data):
     #lo, = pl.plot(10**xt, yo, c="red", lw=2, ls="-", alpha=0.4)
     lt, = pl.plot(xt, yt, c="black", lw=1, ls="-")
     lo, = pl.plot(xt, yo, c="red", lw=2, ls="-", alpha=0.4)
+    pl.plot(xor, yor, c="grey", lw=1, ls="--")
+    pl.plot(xor, yor2, c="red", lw=1, ls="--")
     #pl.legend()
     pl.loglog()
     #pl.axhline(y=1)
@@ -3702,6 +3709,17 @@ def p3edot_distributions(data, size=1e5):
         xi_xs.append(val)
     xi_xs = np.array(xi_xs)
 
+    """
+    # sort according to xi_xs
+    idx = np.argsort(xi_xs)
+    xi_xs = xi_xs[idx]
+    p3s = p3s[idx]
+    ep3s = ep3s[idx]
+    edots = edots[idx]
+    periods = periods[idx]
+    pdots = pdots[idx]
+    #"""
+
     p3s10 = np.log10(p3s)
     ep3s10 = np.log10(ep3s)
     edots10 = np.log10(edots)
@@ -3773,10 +3791,8 @@ def p3edot_distributions(data, size=1e5):
                     res.append(1)
             return np.array(res)
 
-
-
-    w = 1.201 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
-    th = -1.272# -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+    w = 1.0#1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
+    th = -1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
 
     # get minimum / maximum value
     xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
@@ -3789,6 +3805,7 @@ def p3edot_distributions(data, size=1e5):
     xs_notobs = []
     p3s_model = np.empty(len(p3s))
     xs_model = np.empty(len(p3s))
+    p3s_dist = np.empty(len(p3s))
 
     n = 1
     sigma = np.std(p3s10)
@@ -3804,17 +3821,17 @@ def p3edot_distributions(data, size=1e5):
     ypoints = np.array([1, 1])
     xsig, ysig, vsig = least_sq(xpoints, ypoints, sigma_fun, v0, xmax=None)
 
-
     p3max = np.max(p3s)
-    print(p3max)
+    #print(p3max)
+    probabilities = []
 
     for i in range(len(xi_xs)):
+        #print(xi_xs[i], edots[i])
         p3m = p3fun(xi_xs[i], w, th)
-        #print(xi_xs[i], p3m)
         sig = sigma_fun(vsig, np.log10(xi_xs[i])) * sigma
-        p3s_model = 10 ** np.random.normal(np.log10(p3m), sig, size=int(size))
+        p3s_dist = 10 ** np.random.normal(np.log10(p3m), sig, size=int(size))
         # get the aliased values
-        for k, p3 in enumerate(p3s_model):
+        for k, p3 in enumerate(p3s_dist):
             if p3 < 2:
                 for nn in range(1, 4):
                     p3obs = p3aliased(p3, nn)
@@ -3832,39 +3849,78 @@ def p3edot_distributions(data, size=1e5):
                             p3obs = p3aliased(p3, nn)
                             if p3obs > 2 and p3obs < p3max:
                                 break
-                p3s_model[k] = p3obs
+                p3s_dist[k] = p3obs
+        #pl.hist(p3s_dist)
+        #pl.show()
+
         # fit log-normal PDF
+        # with outliers
+        p3stofit = p3s_dist
+        """
         # no outliers in fitting...
         p3ma2 = 10 ** (np.log10(p3m) + 3 * sig)
         p3stofit = []
-        for p3 in p3s_model:
+        for p3 in p3s_dist:
             if p3 < p3ma2:
                 p3stofit.append(p3)
+        #"""
         p3stofit = np.array(p3stofit)
         hi = np.histogram(p3stofit, bins=100)
         yhi = hi[0]
         xhi = np.empty(len(yhi))
-        for i in range(len(hi[1]) - 1):
-            xhi[i] = hi[1][i] + 0.5 * (hi[1][i+1] - hi[1][i])
-        log_norm = lambda v, x: 1 / (v[0] * np.sqrt(2)) * np.exp(- (np.log(x) - v[1])**2 / (2 * v[0] ** 2))
+        for j in range(len(hi[1]) - 1):
+            xhi[j] = hi[1][j] + 0.5 * (hi[1][j+1] - hi[1][j])
+        #log_norm = lambda v, x: 1 / (v[0] * np.sqrt(2)) * np.exp(- (np.log(x) - v[1])**2 / (2 * v[0] ** 2)) # this one works
+        #log_norm = lambda v, x: 1 / (x * v[0] * np.sqrt(2)) * np.exp(- (np.log(x) - v[1])**2 / (2 * v[0] ** 2)) # this one does not # problem with v[0]...
+        #log_norm = lambda v, x: v[0] * np.exp(- (np.log(x) - v[1])**2) # also works
+        #log_norm = lambda v, x: v[0] * np.exp(- (x - v[1]) ** 2) # normal distribution does not work
+        log_norm = lambda v, x: v[0] / x * np.exp(- (np.log(x) - v[1])**2) # best (log-normal...)
         v0 = [1, 1]
-        yhi = yhi /  np.max(yhi)
+        yhi = yhi /  np.max(yhi) # do the fitting with ymax = 1
         x, y, v = least_sq(xhi, yhi, log_norm, v0, xmax=None)
-        #print(v)
-        #print(len(yhi))
-        #print(len(xhi))
-        #pl.hist(p3stofit, bins=100)
-        pl.step(xhi, yhi, where='mid')
-        pl.plot(xhi, yhi)
-        pl.plot(x, y)
-        pl.axvline(x=p3s[i], lw=2, c="tab:red")
-        pl.axvline(x=p3s[i] - 3*ep3s[i], lw=1, c="tab:red")
-        pl.axvline(x=p3s[i] + 3*ep3s[i], lw=1, c="tab:red")
-        pl.show()
 
+        # generate more complete function
+        x_ = np.linspace(2, 500, num=1000)
+        y_ = log_norm(v, x_)
+
+        # calculate integral to normalize the distribution
+        integral = np.trapz(y_, x_)
+        v[0] = v[0] / integral
+        # y = log_norm(v, x) # also works
+        y /= integral
+        y_ /= integral
+        yhi /= integral
+
+        # calculate probablility (integration)
+        x_min = p3s[i] - 3 * ep3s[i]
+        if x_min < 2:
+            x_min = 2
+        x_max = p3s[i] + 3*ep3s[i]
+        xx = np.linspace(x_min, x_max, num=1000)
+        yy = log_norm(v, xx)
+        prob = np.trapz(yy, xx)
+        #print("Probablility: ", prob)
+        probabilities.append(prob)
+
+        p3s_model[i] = p3s_dist[0]
+        xs_model[i] = xi_xs[i]
+        #"""
+        if xi_xs[i] > -20:
+            #print(v)
+            #print(len(yhi))
+            #print(len(xhi))
+            #pl.hist(p3stofit, bins=100)
+            print(probabilities[-1])
+            pl.step(xhi, yhi, where='mid')
+            pl.plot(xhi, yhi, c="tab:orange")
+            pl.plot(x, y, c="tab:green")
+            #pl.plot(x_, y_, c="tab:red")
+            pl.axvline(x=p3s[i], lw=2, c="tab:red")
+            pl.axvline(x=p3s[i] - 3*ep3s[i], lw=1, c="tab:red")
+            pl.axvline(x=p3s[i] + 3*ep3s[i], lw=1, c="tab:red")
+            pl.show()
+        #"""
         #return
-
-
     # randomize observations
     #"""
     for zz in range(len(p3s10)):
@@ -3876,15 +3932,18 @@ def p3edot_distributions(data, size=1e5):
         #print("p3 ", p3s[zz], "new p3", ran, "error", ep3s[zz])
         #p3s10_rand[zz] = p3s10[zz] # not random
     #"""
+    print("Mean probability: ", np.mean(probabilities))
+    print("Median probability: ", np.median(probabilities))
+    #return
 
-    return
+    #print(xs_model)
 
     pl.figure(figsize=(13.149606, 13.946563744))
     pl.subplot(2,1,1)
     pl.minorticks_on()
-    pl.scatter(xi_xs, p3s_rand, alpha=0.5, ec="None")
-    pl.scatter(xs_model, p3s_model, alpha=0.5, ec="None")
-    pl.scatter(xs_notobs, p3s_notobs)
+    pl.scatter(xi_xs, p3s_rand, c=probabilities, alpha=0.7, ec="None")
+    pl.errorbar(xi_xs, p3s, fmt='none', yerr=ep3s, color="tab:blue", zorder=2, alpha=0.3)
+    pl.colorbar()
     pl.plot(xt, yt, c="black")
     #pl.plot(xline, yline)
     pl.axhline(y=2, ls=":", c="black")
@@ -3893,17 +3952,373 @@ def p3edot_distributions(data, size=1e5):
     pl.subplot(2,1,2)
     pl.minorticks_on()
     #pl.scatter(xpvals, pvals)
-    try:
-        pl.plot(xpvals_bin, pvals_bin, lw=2, c="C1")
-    except:
-        pass
-    pl.axhline(y=0.01, c="C2", ls="--")
-    pl.semilogx()
-    pl.ylabel("p-value")
+
+    pl.scatter(xi_xs, p3s, c="tab:blue", alpha=0.7, ec="None", label="observed")
+    pl.scatter(xs_model, p3s_model, c="tab:orange", alpha=0.7, ec="None", label="modeled")
+    pl.loglog()
     #pl.xlim(xlims[0], xlims[1])
     #pl.scatter(edots10, sigs, c="green")
-    filename = "output/check_p3edot.pdf"
+    filename = "output/p3edot_distributions.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
+
+def p3edot_distributions_lin(data, size=1e3):
+
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+    periods = np.array(data[17])
+    pdots = np.array(data[18])
+
+    xi_xs = []
+    for i, p in enumerate(periods):
+        val = p ** (-1.78) * (pdots[i]/1e-15)
+        xi_xs.append(val)
+    xi_xs = np.array(xi_xs)
+
+    """
+    # sort according to xi_xs
+    idx = np.argsort(xi_xs)
+    xi_xs = xi_xs[idx]
+    p3s = p3s[idx]
+    ep3s = ep3s[idx]
+    edots = edots[idx]
+    periods = periods[idx]
+    pdots = pdots[idx]
+    #"""
+
+    p3s10 = np.log10(p3s)
+    ep3s10 = np.log10(ep3s)
+    edots10 = np.log10(edots)
+
+    p3s10_rand = np.empty(len(p3s))
+    p3s_rand = np.empty(len(p3s))
+
+    edot_break = 7e30
+    p3s_low = []
+    ep3s_low = []
+    edots_low = []
+
+    p3s_high = []
+    ep3s_high = []
+    edots_high = []
+
+    for i, edot in enumerate(edots):
+        if edot <= edot_break:
+            p3s_low.append(p3s[i])
+            ep3s_low.append(ep3s[i])
+            edots_low.append(edots[i])
+        else:
+            p3s_high.append(p3s[i])
+            ep3s_high.append(ep3s[i])
+            edots_high.append(edots[i])
+
+    p3s_low = np.array(p3s_low)
+    ep3s_low = np.array(ep3s_low)
+    edots_low = np.array(edots_low)
+    p3s_high = np.array(p3s_high)
+    ep3s_high = np.array(ep3s_high)
+    edots_high = np.array(edots_high)
+
+    # alised values
+    #p3aliased = lambda p3, n: p3 / (1  - n * p3)
+    def p3aliased(p3, n):
+        if type(p3) == np.float64 or type(p3) == float:
+            if p3 > 1:
+                return p3 / (n * p3 - 1)
+            elif p3 == 1:
+                return 100.
+            else:
+                return p3 / (1 - n * p3)
+        else:
+            res = []
+            for p3_ in p3:
+                if p3_ > 1:
+                    res.append(p3_ / (n * p3_ - 1))
+                elif p3_ == 0:
+                    res.append(200)
+                elif p3_ < 1:
+                    res.append(p3 / (1 - n * p3))
+            return np.array(res)
+
+    # dependence in question
+    a = -0.4
+    y0 = 0.5
+    x0 = 1
+    b = y0 - a * np.log10(x0)
+    p3fun = lambda x: a * x + b
+    #p3fun = lambda x, w, th: np.fabs(1 / (1 - w / (x - th)))
+    """
+    def p3fun(xs, w, th):
+        if type(xs) == np.float64:
+            if xs != th:
+                return np.fabs(1 / (1 - w / (xs - th)))
+            else:
+                return 1.
+        else:
+            res = []
+            for x in xs:
+                if x != th:
+                    res.append(np.fabs(1 / (1 - w / (x - th))))
+                else:
+                    res.append(1)
+            return np.array(res)
+    """
+
+
+    w = 1.0#1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
+    th = -1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+
+    # get minimum / maximum value
+    xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
+    yt = 10**p3fun(np.log10(xt))
+    #yt = p3fun(xt, w, th)
+    p3m_max = np.max(yt)
+    p3m_min = np.min(yt)
+
+    #pl.plot(xt, yt)
+    #pl.loglog()
+    #pl.show()
+
+    # model data
+    p3s_notobs = []
+    xs_notobs = []
+    p3s_model = np.empty(len(p3s))
+    xs_model = np.empty(len(p3s))
+    p3s_dist = np.empty(len(p3s))
+
+    n = 1
+    sigma = np.std(p3s10)
+    print("SIGMA: ", sigma)
+    sigma = np.std(np.log10(p3s_low))
+    #sigma = np.std(p3s_low)
+    print("SIGMA low: ", sigma)
+
+    # sigma fun
+    sigma_fun = lambda v, x: v[0] + v[1] * x
+    v0 = [1, 1]
+    xpoints = np.array([-3, 4])
+    ypoints = np.array([1, 1])
+    xsig, ysig, vsig = least_sq(xpoints, ypoints, sigma_fun, v0, xmax=None)
+
+    p3max = np.max(p3s)
+    #print(p3max)
+
+
+    probabilities = []
+
+    for i in range(len(xi_xs)):
+        #print(xi_xs[i], edots[i])
+        p3m = 10 ** p3fun(np.log10(xi_xs[i]))
+        #p3m = p3fun(xi_xs[i], w, th)
+        sig = sigma_fun(vsig, np.log10(xi_xs[i])) * sigma
+        p3s_dist = 10 ** np.random.normal(np.log10(p3m), sig, size=int(size))
+        # get the aliased values
+        for k, p3 in enumerate(p3s_dist):
+            if p3 < 2:
+                for nn in range(1, 4):
+                    p3obs = p3aliased(p3, nn)
+                    if p3obs > 2 and p3obs < p3max:
+                        break
+                    else:
+                        p3obs = p3
+                while p3obs < 2 or p3obs > p3max:
+                    p3 = 10 ** np.random.normal(np.log10(p3m), sig)
+                    if p3 > 2 and p3obs < p3max:
+                        p3obs = p3
+                        break
+                    else:
+                        for nn in range(1, 4):
+                            p3obs = p3aliased(p3, nn)
+                            if p3obs > 2 and p3obs < p3max:
+                                break
+                p3s_dist[k] = p3obs
+
+        # fit log-normal PDF
+        # with outliers
+        p3stofit = p3s_dist
+        """
+        # no outliers in fitting...
+        p3ma2 = 10 ** (np.log10(p3m) + 3 * sig)
+        p3stofit = []
+        for p3 in p3s_dist:
+            if p3 < p3ma2:
+                p3stofit.append(p3)
+        #"""
+        p3stofit = np.array(p3stofit)
+        hi = np.histogram(p3stofit, bins=100)
+        yhi = hi[0]
+        xhi = np.empty(len(yhi))
+        for j in range(len(hi[1]) - 1):
+            xhi[j] = hi[1][j] + 0.5 * (hi[1][j+1] - hi[1][j])
+        #log_norm = lambda v, x: 1 / (v[0] * np.sqrt(2)) * np.exp(- (np.log(x) - v[1])**2 / (2 * v[0] ** 2)) # this one works
+        #log_norm = lambda v, x: 1 / (x * v[0] * np.sqrt(2)) * np.exp(- (np.log(x) - v[1])**2 / (2 * v[0] ** 2)) # this one does not # problem with v[0]...
+        #log_norm = lambda v, x: v[0] * np.exp(- (np.log(x) - v[1])**2) # also works
+        #log_norm = lambda v, x: v[0] * np.exp(- (x - v[1]) ** 2) # normal distribution does not work
+        log_norm = lambda v, x: v[0] / x * np.exp(- (np.log(x) - v[1])**2) # best (log-normal...)
+        v0 = [1, 1]
+        yhi = yhi /  np.max(yhi) # do the fitting with ymax = 1
+        x, y, v = least_sq(xhi, yhi, log_norm, v0, xmax=None)
+
+        # generate more complete function
+        x_ = np.linspace(2, 500, num=1000)
+        y_ = log_norm(v, x_)
+
+        # calculate integral to normalize the distribution
+        integral = np.trapz(y_, x_)
+        v[0] = v[0] / integral
+        # y = log_norm(v, x) # also works
+        y /= integral
+        y_ /= integral
+        yhi /= integral
+
+        # calculate probablility (integration)
+        x_min = p3s[i] - 3 * ep3s[i]
+        if x_min < 2:
+            x_min = 2
+        x_max = p3s[i] + 3*ep3s[i]
+        xx = np.linspace(x_min, x_max, num=1000)
+        yy = log_norm(v, xx)
+        prob = np.trapz(yy, xx)
+        #print("Probablility: ", prob)
+        probabilities.append(prob)
+
+        p3s_model[i] = p3s_dist[0]
+        xs_model[i] = xi_xs[i]
+        """
+        if xi_xs[i] > -20:
+            #print(v)
+            #print(len(yhi))
+            #print(len(xhi))
+            #pl.hist(p3stofit, bins=100)
+            print(probabilities[-1])
+            pl.step(xhi, yhi, where='mid')
+            pl.plot(xhi, yhi, c="tab:orange")
+            pl.plot(x, y, c="tab:green")
+            #pl.plot(x_, y_, c="tab:red")
+            pl.axvline(x=p3s[i], lw=2, c="tab:red")
+            pl.axvline(x=p3s[i] - 3*ep3s[i], lw=1, c="tab:red")
+            pl.axvline(x=p3s[i] + 3*ep3s[i], lw=1, c="tab:red")
+            pl.show()
+        #"""
+        #return
+    # randomize observations
+    #"""
+    for zz in range(len(p3s10)):
+        ran = np.random.normal(p3s[zz], ep3s[zz])
+        while ran < 2:
+            ran = np.random.normal(p3s[zz], ep3s[zz])
+        p3s10_rand[zz] = np.log10(ran)
+        p3s_rand[zz] = ran
+        #print("p3 ", p3s[zz], "new p3", ran, "error", ep3s[zz])
+        #p3s10_rand[zz] = p3s10[zz] # not random
+    #"""
+    print("Mean probability: ", np.mean(probabilities))
+    print("Median probability: ", np.median(probabilities))
+    #return
+
+    #print(xs_model)
+
+    pl.figure(figsize=(13.149606, 13.946563744))
+    pl.subplot(2,1,1)
+    pl.minorticks_on()
+    pl.scatter(xi_xs, p3s_rand, c=probabilities, alpha=0.7, ec="None")
+    pl.errorbar(xi_xs, p3s, fmt='none', yerr=ep3s, color="tab:blue", zorder=2, alpha=0.3)
+    pl.colorbar()
+    pl.plot(xt, yt, c="black")
+    #pl.plot(xline, yline)
+    pl.axhline(y=2, ls=":", c="black")
+    xlims = pl.xlim()
+    pl.loglog()
+    pl.subplot(2,1,2)
+    pl.minorticks_on()
+    #pl.scatter(xpvals, pvals)
+
+    pl.scatter(xi_xs, p3s, c="tab:blue", alpha=0.7, ec="None", label="observed")
+    pl.scatter(xs_model, p3s_model, c="tab:orange", alpha=0.7, ec="None", label="modeled")
+    pl.loglog()
+    #pl.xlim(xlims[0], xlims[1])
+    #pl.scatter(edots10, sigs, c="green")
+    filename = "output/p3edot_distributions_lin.pdf"
     print(filename)
     pl.savefig(filename)
 
     #pl.show()
+
+
+def p3edot_inflection(data, size=1e3):
+
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+    periods = np.array(data[17])
+    pdots = np.array(data[18])
+
+    xi_xs = []
+    for i, p in enumerate(periods):
+        val = p ** (-1.78) * (pdots[i]/1e-15)
+        xi_xs.append(val)
+    xi_xs = np.array(xi_xs)
+
+    #"""
+    # sort according to xi_xs
+    idx = np.argsort(xi_xs)
+    xi_xs = xi_xs[idx]
+    p3s = p3s[idx]
+    ep3s = ep3s[idx]
+    edots = edots[idx]
+    periods = periods[idx]
+    pdots = pdots[idx]
+    #"""
+
+    # poarabolic fit to whole data
+    para = lambda v, x: v[0] * x ** 2 + v[1] * x + v[2]
+    xp, yp, vp = least_sq(np.log10(xi_xs), np.log10(p3s), para, [1,1,1], xmax=None)
+
+    indxs = np.argsort(10**yp)
+    in_ = 10**xp[indxs[0]]
+
+    print("Inflection point: ", in_)
+
+    xi_low = []
+    xi_high = []
+    p3s_low = []
+    p3s_high = []
+    ep3s_low = []
+    ep3s_high = []
+
+    for i,xi in enumerate(xi_xs):
+        if xi <= in_:
+            xi_low.append(xi)
+            p3s_low.append(p3s[i])
+            ep3s_low.append(ep3s[i])
+        else:
+            xi_high.append(xi)
+            p3s_high.append(p3s[i])
+            ep3s_high.append(ep3s[i])
+
+    # linear fit
+    lin = lambda v, x:  v[0] * x + v[1]
+    xh, yh, vh = least_sq(np.log10(xi_high), np.log10(p3s_high), lin, [1,1], xmax=None)
+    xl, yl, vl = least_sq(np.log10(xi_low), np.log10(p3s_low), lin, [1,1], xmax=None)
+
+    pl.figure(figsize=(13.149606, 13.946563744))
+    #pl.subplot(2,1,1)
+    pl.minorticks_on()
+    pl.scatter(xi_xs, p3s, alpha=0.7, ec="None")
+    pl.errorbar(xi_xs, p3s, fmt='none', yerr=ep3s, color="tab:blue", zorder=2, alpha=0.3)
+    pl.plot(10**xp, 10**yp)
+    pl.plot(10**xl, 10**yl)
+    pl.plot(10**xh, 10**yh)
+    #pl.plot(xline, yline)
+    pl.axhline(y=2, ls=":", c="black")
+    pl.axvline(x=in_, ls="--", c="tab:red")
+    xlims = pl.xlim()
+    pl.loglog()
+    filename = "output/p3edot_inflection.pdf"
+    print(filename)
+    pl.savefig(filename)
+
+    pl.show()
