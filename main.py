@@ -221,9 +221,19 @@ def p3edot_distributions_lin():
     pl.p3edot_distributions_lin(d1)
 
 
-def p3edot_inflection():
+def p3edot_inflection_low():
     d1 = da.p3dominant_driftonly()
-    pl.p3edot_inflection(d1)
+    pl.p3edot_inflection_low(d1)
+
+
+def p3edot_inflection_high():
+    d1 = da.p3dominant_driftonly()
+    pl.p3edot_inflection_high(d1)
+
+
+def p3edot_inflection_geoff():
+    d1 = da.p3dominant_driftonly()
+    pl.p3edot_inflection_geoff(d1)
 
 
 def main():
@@ -246,7 +256,7 @@ def main():
     #da.table_1() # not used
     #da.table_2() # p3dominant
     #da.table_3() # p3plusp2 (4 pages)
-    da.table_4(filename="data/stats.csv") # p3plusp2_full (the big table) # TODO
+    #da.table_4(filename="data/stats.csv") # p3plusp2_full (the big table) # TODO
     #find_bestp3edot()
     #plot_edot4()
     #plot_edot_driftp3only()
@@ -269,7 +279,9 @@ def main():
     #check_p3edot_geoff()
     #p3edot_distributions()
     #p3edot_distributions_lin()
-    #p3edot_inflection()
+    #p3edot_inflection_low()
+    #p3edot_inflection_high()
+    p3edot_inflection_geoff()
 
 
     print("Bye")
