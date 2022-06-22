@@ -19,6 +19,20 @@ def least_sq(x, y, fun, v0, size=200, xmax=None):
     y_new = fun(v, x_new)
     return x_new, y_new, v
 
+
+def least_sq_samex(x, y, fun, v0):
+    """
+    no errors
+    """
+    ## Error function
+    errfunc = lambda v, x, y: (fun(v, x) - y)
+    res = leastsq(errfunc, v0, args=(np.array(x), np.array(y)), maxfev=10000, full_output=True)
+    v, conv = res[0], res[1]
+    y_new = fun(v, x)
+    return x, y_new, v
+
+
+
 def least_sq1D(x, y, fun, err, v0, size=200, times_min=0.9, times_max=1.1):
     """
         err is 1D array (len=1)

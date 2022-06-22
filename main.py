@@ -236,6 +236,20 @@ def p3edot_inflection_geoff():
     pl.p3edot_inflection_geoff(d1)
 
 
+def p3edot_inflection_geoff2():
+    d1 = da.p3dominant_driftonly()
+    pl.p3edot_inflection_geoff2(d1)
+
+
+def aliasing():
+    pl.aliasing()
+
+
+def p3p2edot():
+    d1 = da.p3dominant_driftonly()
+    pl.p3p2edot(d1)
+
+
 def main():
     #test()
     #latex_test() # obsolete
@@ -281,7 +295,10 @@ def main():
     #p3edot_distributions_lin()
     #p3edot_inflection_low()
     #p3edot_inflection_high()
-    p3edot_inflection_geoff()
+    #p3edot_inflection_geoff()
+    #p3edot_inflection_geoff2()
+    #aliasing()
+    p3p2edot()
 
 
     print("Bye")

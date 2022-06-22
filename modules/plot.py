@@ -6,7 +6,7 @@ from scipy.stats import ttest_1samp, ks_2samp
 from scipy.optimize import leastsq
 import scipy.stats as stats
 
-from modules.functions import least_sq, least_sq1D, odr
+from modules.functions import least_sq, least_sq1D, odr, least_sq_samex
 import modules.data as da
 
 def test_plot(data):
@@ -3053,10 +3053,10 @@ def fit_p3_edot6(data):
 
     # dependence in question
     #p3fun = lambda x, w, th: np.fabs(1 / (1 - w / (x - th)))
-    def p3fun(xs, w, th):
+    def p3fun(xs, w, th, r):
         if type(xs) == np.float64:
             if xs != th:
-                return np.fabs(1 / (1 - (w / (xs - th))**1))
+                return np.fabs(1 / (1 - (w / (xs - th))**r))
                 #return np.fabs(1 / (1 - 1/ xs))
             else:
                 return 1.
@@ -3064,7 +3064,7 @@ def fit_p3_edot6(data):
             res = []
             for x in xs:
                 if x != th:
-                    res.append(np.fabs(1 / (1 - (w / (x - th))**1)))
+                    res.append(np.fabs(1 / (1 - (w / (x - th))**r)))
                     #res.append(np.fabs(1 / (1 - 1 / x)))
                 else:
                     res.append(1)
@@ -3074,7 +3074,8 @@ def fit_p3_edot6(data):
     def p3_obs(v, edot10):
         w = v[0]
         th = v[1]
-        ym = p3fun(edot10, w, th)
+        r = v[2]
+        ym = p3fun(edot10, w, th, r)
         y = ym
         #print(edot10, ym)
         n = 1
@@ -3089,19 +3090,20 @@ def fit_p3_edot6(data):
 
     w = 1 #1 # 0.5 # 6.32 # 9.65
     th = -1.05 #-1 # -0.42 # -3.16 # -3.16
-    vobs = [w, th]
+    r = 1
+    vobs = [w, th, r]
     xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
-    yt = p3fun(xt, vobs[0], vobs[1])
+    yt = p3fun(xt, vobs[0], vobs[1], vobs[2])
 
     yo = np.empty(xt.size)
     for i, x in enumerate(xt):
         yo[i] = p3_obs(vobs, x)
 
     xor = np.logspace(np.log10(1), np.log10(1e4), num=10000)
-    yor = p3fun(xor, 1, 0)
+    yor = p3fun(xor, 1, 0, 1)
     yor2 = np.empty(xor.size)
     for i, x in enumerate(xor):
-        yor2[i] = p3_obs([1,0], x)
+        yor2[i] = p3_obs([1,0, 2], x)
 
     # fitting line
     f, v = da.fit_line()
@@ -3134,26 +3136,29 @@ def fit_p3_edot6(data):
     pl.ylabel(r"$P_3$ in $P$")
     xlims = pl.xlim()
 
-    pl.figtext(0.5, 0.4, r"$f(x) = \frac{1}{1-\frac{w}{x-t}}$", size=15)
+    pl.figtext(0.5, 0.4, r"$f(x) = \frac{1}{1-\frac{w}{(x-t)^r}}$", size=15)
 
     # Sliders
     axcolor = 'lightgoldenrodyellow'
     wax = pl.axes([0.25, 0.1, 0.65, 0.03], facecolor=axcolor)
-    thax = pl.axes([0.25, 0.3, 0.65, 0.03], facecolor=axcolor)
+    thax = pl.axes([0.25, 0.2, 0.65, 0.03], facecolor=axcolor)
+    rax = pl.axes([0.25, 0.3, 0.65, 0.03], facecolor=axcolor)
 
     sw = Slider(wax, 'w', 0, 10, valinit=w, valstep=0.01)
     sth = Slider(thax, 't', -10, 20, valinit=th, valstep=0.01)
+    sr = Slider(rax, 'r', 0.1, 4, valinit=r, valstep=0.01)
     def update(val):
         th = sth.val
+        r = sr.val
         # TODO automatic w based on fit
-        #w = sw.val
-        w = f(v, th)
-        sw.set_val(w)
+        w = sw.val
+        #w = f(v, th)
+        #sw.set_val(w)
         #print(w, th)
-        yt = p3fun(xt, w, th)
+        yt = p3fun(xt, w, th, r)
         yo = np.empty(xt.size)
         for i, x in enumerate(xt):
-            yo[i] = p3_obs([w, th], x)
+            yo[i] = p3_obs([w, th, r], x)
         lt.set_ydata(yt)
         lo.set_ydata(yo)
         fig.canvas.draw_idle()
@@ -3161,6 +3166,7 @@ def fit_p3_edot6(data):
 
     sw.on_changed(update)
     sth.on_changed(update)
+    sr.on_changed(update)
 
     filename = "output/fit_p3_edot6.pdf"
     print(filename)
@@ -4804,12 +4810,18 @@ def p3edot_inflection_geoff(data, size=1e3):
             return np.array(res)
     #"""
 
-    w = 1.0 #1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
-    th = -1.05 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+    w = 1.0 # 1.0 # 1.5 #1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
+    th = -1.03 # -1.03 # -1.55 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+
+    # intrinsic dependence
+    xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=1000)
+    yt = p3fun(xt, w, th)
 
     # get minimum / maximum value
-    xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
-    yt = p3fun(xt, w, th)
+    p3m_max = np.max(yt)
+    p3m_min = np.min(yt)
+
+    # intrinsic dependence in high xi region
     ythi = []
     xthi = []
     for i, y in enumerate(yt):
@@ -4818,9 +4830,6 @@ def p3edot_inflection_geoff(data, size=1e3):
             ythi.append(p3aliased(y, 1))
     xthi = np.array(xthi)
     ythi = np.array(ythi)
-
-    p3m_max = np.max(yt)
-    p3m_min = np.min(yt)
 
     #pl.plot(xt, yt)
     #pl.loglog()
@@ -4844,17 +4853,17 @@ def p3edot_inflection_geoff(data, size=1e3):
     xpoints = np.array([-3, 0, 4])
     #ypoints = np.array([1., 0.2, 0.1])
     ypoints = np.array([1.01, 0.3, 0.05]) # best!
-    #ypoints = np.array([0.1, 0.1, 0.01])
+    #ypoints = np.array([0.1, 0.1, 0.1])
     #ypoints = np.array([1., 1, 1])
     xsig, ysig, vsig = least_sq(xpoints, ypoints, sigma_fun, v0, xmax=None)
     #pl.plot(xsig, ysig)
     #pl.scatter(xpoints, ypoints)
     #pl.show()
-    """ for some test? or used?
+    """" for some test?
     sig_fun = lambda v, x: v[0] + v[1] * x
     v0 = [1, 1]
     xpoints = np.array([0, 4])
-    ypoints = np.array([0.3, 0.05])
+    ypoints = np.array([0.7, 0.001])
     #ypoints = np.array([0.9, 0.05])
     xsig, ysig, vsig = least_sq(xpoints, ypoints, sig_fun, v0, xmax=None)
     def sigma_fun(v, x):
@@ -4863,6 +4872,7 @@ def p3edot_inflection_geoff(data, size=1e3):
         else:
             return sig_fun(v, x)
     #"""
+    # intrinsic dependence variation # TODO improve it!
     ytl = np.empty(len(yt))
     yth = np.empty(len(yt))
 
@@ -4871,13 +4881,58 @@ def p3edot_inflection_geoff(data, size=1e3):
         ytl[i] = 10 ** (np.log10(y) - sigma_fun(vsig, np.log10(xt[i])) * sigma)
         yth[i] = 10 ** (np.log10(y) + sigma_fun(vsig, np.log10(xt[i])) * sigma)
 
+    # intrinsic dependence new variation (circle stuff)
+    ytl2 = np.zeros(len(yt))
+    yth2 = np.zeros(len(yt))
+
+    # circle data
+    yci = [[] for i in range(len(xt))]
+    for i,x in enumerate(xt):
+        a = np.log10(x)
+        b = np.log10(yt[i])
+        r = np.fabs(sigma_fun(vsig, np.log10(x)) * sigma) # is it ok?
+        #print(r)
+        #print("a b r", a, b, r)
+        # loop over the x
+        ys = []
+        xs = []
+        for j, xc in enumerate(xt):
+            if xc > 10 ** (a + r):
+                break
+            if xc >= 10 ** (a - r):
+                y_1 = b - np.sqrt(-a ** 2 + 2 * a * np.log10(xc) + r ** 2 - np.log10(xc) ** 2)
+                y_2 = np.sqrt(-a ** 2 + 2 * a * np.log10(xc) + r ** 2 - np.log10(xc) ** 2) + b
+                ys.append(y_1)
+                ys.append(y_2)
+                xs.append(np.log10(xc))
+                xs.append(np.log10(xc))
+                yci[j].append(y_1)
+                yci[j].append(y_2)
+    for i in range(len(xt)):
+        ytl2[i] = np.min(10 ** np.array(yci[i]))
+        yth2[i] = np.max(10 ** np.array(yci[i]))
+        #print(i, xt[i],  yt[i], ytl2[i], yth2[i])
+
+    def get_sigma(xi):
+        """ WOW this is weird - you have too much time?"""
+        mi = 1e50
+        sig = 10
+        for i, x in enumerate(xt):
+            diff = np.fabs(xi - x)
+            if diff < mi:
+                sig = (np.log10(yth2[i]) - np.log10(ytl2[i])) / 2
+                mi = diff
+        return sig
+
 
     p3max = np.max(p3s)
 
     for i in range(len(xi_xs)):
         aliased = False
         p3m = p3fun(xi_xs[i], w, th)
-        sig = sigma_fun(vsig, np.log10(xi_xs[i])) * sigma
+        #sig = sigma_fun(vsig, np.log10(xi_xs[i])) * sigma
+        sig = get_sigma(xi_xs[i]) # new weird approach
+        #print(sig)
         p3  = 10 ** np.random.normal(np.log10(p3m), sig)
         if p3 > 2:
             p3s_model.append(p3)
@@ -4918,6 +4973,18 @@ def p3edot_inflection_geoff(data, size=1e3):
     xs_model_hl = np.array(xs_model_hl)
     xm, ym, vm = least_sq(np.log10(xs_model_hl), np.log10(p3s_model_hl), lin, [1,1], xmax=None)
 
+
+    """
+    # randomize observations
+    p3s_rand = np.zeros(len(p3s))
+    for zz in range(len(p3s)):
+        ran = np.random.normal(p3s[zz], ep3s[zz])
+        while ran < 2:
+            ran = np.random.normal(p3s[zz], ep3s[zz])
+        p3s_rand[zz] = ran
+        #p3s10_rand[zz] = p3s10[zz] # not random
+    #"""
+
     pl.rc("font", size=8)
     pl.rc("axes", linewidth=0.5)
 
@@ -4931,9 +4998,11 @@ def p3edot_inflection_geoff(data, size=1e3):
     pl.scatter(xs_model_hl, p3s_model_hl, alpha=0.7, ec="None", color="tab:orange")
     pl.plot(xt, yt, c="black")
     pl.plot(xthi, ythi, c="black", ls="--")
-    pl.fill_between(xt, ytl, yth, color="grey", alpha=0.3)
-    #pl.plot(xt, ytl, c="black", ls="--")
-    #pl.plot(xt, yth, c="black", ls="--")
+    #pl.plot(xt, ytl, c="pink", ls="--")
+    #pl.plot(xt, yth, c="blue", ls="--")
+    pl.fill_between(xt, ytl2, yth2, color="grey", alpha=0.3)
+    #pl.plot(xt, ytl, c="pink", ls="--")
+    #pl.plot(xt, yth, c="magenta", ls="--")
     pl.plot(10**xm, 10**ym, c="tab:red", lw=2)
     #pl.plot(10**xp, 10**yp)
     #pl.plot(10**xl, 10**yl)
@@ -4949,7 +5018,495 @@ def p3edot_inflection_geoff(data, size=1e3):
     pl.xlabel(r"$(P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15})$")
     pl.ylabel(r"$P_3$ in $P$")
     pl.ylim(0.8, 400)
+    #pl.axis("equal")
     filename = "output/p3edot_inflection_geoff.pdf"
+    print(filename)
+    pl.savefig(filename)
+
+    pl.show()
+
+
+def p3edot_inflection_geoff2(data, size=1e3):
+    """ version with p3 fraction as error - the best one?! think so """
+
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+    periods = np.array(data[17])
+    pdots = np.array(data[18])
+
+    p2s_theo = np.empty(shape=len(p3s))
+    p2s = np.array(data[4])
+    # check the sorting according to xi_xs below!
+
+    xi_xs = []
+    for i, p in enumerate(periods):
+        val = p ** (-1.78) * (pdots[i]/1e-15)
+        #val = (p ** (-1.78) * (pdots[i]/1e-15)) ** 0.5
+        xi_xs.append(val)
+        # p2
+        # log(P2) = 0.14*( log(P^{-5.5}*Pdot) ) + 1.31
+        p2 = 10 ** (0.14 * np.log10(p ** (-5.5) * (pdots[i]/1e-15)) + 1.31)
+        p2s_theo[i] = p2
+        p2s[i] = np.fabs(p2s[i])
+    xi_xs = np.array(xi_xs)
+
+    #"""
+    # sort according to xi_xs
+    idx = np.argsort(xi_xs)
+    xi_xs = xi_xs[idx]
+    p3s = p3s[idx]
+    ep3s = ep3s[idx]
+    edots = edots[idx]
+    periods = periods[idx]
+    pdots = pdots[idx]
+    p2s = p2s[idx]
+    p2s_theo = p2s_theo[idx]
+    #"""
+
+    # poarabolic fit to whole data
+    para = lambda v, x: v[0] * x ** 2 + v[1] * x + v[2]
+    xp, yp, vp = least_sq(np.log10(xi_xs), np.log10(p3s), para, [1,1,1], xmax=None)
+
+    indxs = np.argsort(10**yp)
+    in_ = 10 ** xp[indxs[0]]
+    #in_ = 3
+
+    print("Inflection point: ", in_)
+
+    xi_low = []
+    xi_high = []
+    p3s_low = []
+    p3s_high = []
+    ep3s_low = []
+    ep3s_high = []
+
+    for i,xi in enumerate(xi_xs):
+        if xi <= in_:
+            xi_low.append(xi)
+            p3s_low.append(p3s[i])
+            ep3s_low.append(ep3s[i])
+        else:
+            xi_high.append(xi)
+            p3s_high.append(p3s[i])
+            ep3s_high.append(ep3s[i])
+
+    # linear fit
+    lin = lambda v, x:  v[0] * x + v[1]
+    xh, yh, vh = least_sq(np.log10(xi_high), np.log10(p3s_high), lin, [1,1], xmax=None)
+    #xh2, yh2, vh2, err = least_sq1D(np.log10(xi_high), np.log10(p3s_high), lin, np.log10(ep3s_high), [1,1])
+    xh3, yh3, vh3, err3 = odr(np.log10(xi_high), np.log10(p3s_high), np.array([1 for i in range(len(ep3s_high))]), np.log10(ep3s_high),lin,  [1,1])
+
+    xl, yl, vl = least_sq(np.log10(xi_low), np.log10(p3s_low), lin, [1,1], xmax=None)
+    #xl2, yl2, vl2, err2 = least_sq1D(np.log10(xi_low), np.log10(p3s_low), lin, np.log10(ep3s_low), [1,1])
+    xl3, yl3, vl3, err3 = odr(np.log10(xi_low), np.log10(p3s_low), np.array([1 for i in range(len(ep3s_low))]), np.log10(ep3s_low),lin,  [1,1])
+
+    ############################################################################
+    # simulating points
+    # alised values
+    #p3aliased = lambda p3, n: p3 / (1  - n * p3)
+    def p3aliased(p3, n):
+        if type(p3) == np.float64 or type(p3) == float:
+            if p3 > 1:
+                return p3 / (n * p3 - 1)
+            #elif p3 == 1:
+            #    return 100.
+            else:
+                return p3 / (1 - n * p3)
+        else:
+            res = []
+            for p3_ in p3:
+                if p3_ > 1:
+                    res.append(p3_ / (n * p3_ - 1))
+                #elif p3_ == 0:
+                #    res.append(200)
+                elif p3_ < 1:
+                    res.append(p3 / (1 - n * p3))
+            return np.array(res)
+
+    #"""
+    def p3fun(xs, w, th):
+        if type(xs) == np.float64:
+            if xs != th:
+                return np.fabs(1 / (1 - w / (xs - th)))
+            else:
+                return 1.
+        else:
+            res = []
+            for x in xs:
+                if x != th:
+                    res.append(np.fabs(1 / (1 - w / (x - th))))
+                else:
+                    res.append(1)
+            return np.array(res)
+    #"""
+
+    w = 1.0 # 1.0 # 1.5 #1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
+    #w = 1.2
+    th = -1.05 # -1.03 # -1.55 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+
+    # intrinsic dependence
+    xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=1000)
+    yt = p3fun(xt, w, th)
+
+    # get minimum / maximum value
+    p3m_max = np.max(yt)
+    p3m_min = np.min(yt)
+
+    # intrinsic dependence in high xi region
+    ythi = []
+    xthi = []
+    for i, y in enumerate(yt):
+        n_ = 1
+        ym = y
+        while y < 2:
+            y = np.fabs(p3aliased(ym, n_))
+            n_ += 1
+            if n_ == 100:
+                break
+            #print(y, n_)
+        else:
+            xthi.append(xt[i])
+            ythi.append(y)
+    xthi = np.array(xthi)
+    ythi = np.array(ythi)
+
+    #pl.plot(xt, yt)
+    #pl.loglog()
+    #pl.show()
+    #exit()
+
+    fraction_fun = lambda v, x: v[0] + v[1] * x
+    v0 = [1, 1]
+    xpoints = np.array([-3, 4])
+    ypoints = np.array([0.5, 0.01])
+    xsig, ysig, vsig = least_sq(xpoints, ypoints, fraction_fun, v0, xmax=None)
+    #pl.plot(xsig, ysig)
+    #pl.scatter(xpoints, ypoints)
+    #pl.show()
+    #exit()
+    # intrinsic dependence variation # TODO improve it!
+    ytl = np.empty(len(yt))
+    yth = np.empty(len(yt))
+
+    # generate model + sigma_fun
+    for i, y in enumerate(yt):
+        ytl[i] = 10 ** (np.log10(y) - np.abs(np.log10(y) - np.log10((1 - fraction_fun(vsig, np.log10(xt[i]))) * y)))
+        yth[i] = 10 ** (np.log10(y) + np.abs(np.log10(y) - np.log10((1 - fraction_fun(vsig, np.log10(xt[i]))) * y)))
+
+
+    # model data
+    p3s_notobs = []
+    xs_notobs = []
+    p3s_model = [] #np.empty(len(p3s))
+    xs_model = [] #np.empty(len(p3s))
+    p3s_model_hl = []
+    xs_model_hl = []
+
+    p3max = np.max(p3s)
+
+    for i in range(len(xi_xs)):
+        aliased = False
+        p3m = p3fun(xi_xs[i], w, th)
+        p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(p3m) - np.log10((1 - fraction_fun(vsig, np.log10(xi_xs[i])))*p3m)))
+        #if xi_xs[i] < 1:
+        #    p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(p3m) - np.log10(0.5*p3m)))
+        #else:
+        #    p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(p3m) - np.log10(0.85*p3m)))
+
+        #print(p3, p3m)
+        #p3 = p3m
+        if p3 > 2:
+            p3s_model.append(p3)
+            xs_model.append(xi_xs[i])
+        else:
+            # check aliasing first
+            for nn in range(1, 10):
+                p3obs = p3aliased(p3, nn)
+                if p3obs > 2:
+                    aliased = True
+                    break
+            # generate new p3
+            while p3obs < 2 or p3obs > 2 * p3max:
+                p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(p3m) - np.log10((1 - fraction_fun(vsig, np.log10(xi_xs[i])))*p3m)))
+                if p3 > 2:
+                    p3obs = p3
+                    aliased = False
+                else:
+                    for nn in range(1, 4):
+                        p3obs = p3aliased(p3, nn)
+                        if p3obs > 2:
+                            aliased = True
+                            break
+            if aliased is True:
+                p3s_notobs.append(p3)
+                xs_notobs.append(xi_xs[i])
+            #print(p3obs)
+            p3s_model.append(p3obs)
+            xs_model.append(xi_xs[i])
+
+        if xi_xs[i] > in_:
+            p3s_model_hl.append(p3s_model[-1])
+            xs_model_hl.append(xi_xs[i])
+
+    p3s_model_hl = np.array(p3s_model_hl)
+    xs_model_hl = np.array(xs_model_hl)
+    xm, ym, vm = least_sq(np.log10(xs_model_hl), np.log10(p3s_model_hl), lin, [1,1], xmax=None)
+
+    # P2 fits
+    xp2m, yp2m, vp2m = least_sq(np.log10(xi_xs),  np.log10(p2s_theo), lin, [1, 1], xmax=None)
+    xp2s, yp2s, vp2 = least_sq(np.log10(xi_xs),  np.log10(p2s), lin,  [1, 1], xmax=None)
+
+    """
+    # randomize observations
+    p3s_rand = np.zeros(len(p3s))
+    for zz in range(len(p3s)):
+        ran = np.random.normal(p3s[zz], ep3s[zz])
+        while ran < 2:
+            ran = np.random.normal(p3s[zz], ep3s[zz])
+        p3s_rand[zz] = ran
+        #p3s10_rand[zz] = p3s10[zz] # not random
+    #"""
+
+    pl.rc("font", size=8)
+    pl.rc("axes", linewidth=0.5)
+
+    pl.figure()
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    #pl.subplot(2,1,1)
+    pl.minorticks_on()
+    pl.scatter(xi_xs, p3s, alpha=0.7, ec="None")
+    pl.errorbar(xi_xs, p3s, fmt='none', yerr=ep3s, color="tab:blue", zorder=2, alpha=0.3)
+    pl.scatter(xs_model, p3s_model, alpha=0.7, ec="None", color="tab:orange")
+    pl.scatter(xs_model_hl, p3s_model_hl, alpha=0.7, ec="None", color="tab:orange")
+    pl.plot(xt, yt, c="black")
+    pl.plot(xthi, ythi, c="black", ls="--")
+    pl.plot(xt, ytl, c="pink", ls="--")
+    pl.plot(xt, yth, c="magenta", ls="--")
+    pl.fill_between(xt, ytl, yth, color="grey", alpha=0.3)
+    pl.plot(10**xm, 10**ym, c="tab:red", lw=2)
+    #pl.plot(10**xp, 10**yp)
+    #pl.plot(10**xl, 10**yl)
+    #pl.plot(10**xl2, 10**yl2)
+    #pl.plot(10**xl3, 10**yl3, c="tab:red")
+    pl.plot(10**xh, 10**yh, c="tab:blue", lw=2)
+    #pl.plot(10**xh2, 10**yh2, c="pink")
+    #pl.plot(10**xh3, 10**yh3, c="tab:green")
+    #pl.plot(xline, yline)
+    pl.plot(xi_xs, p2s_theo, c="tab:green", lw=0.5)
+    pl.plot(10 **xp2m, 10**yp2m, c="tab:green", lw=1)
+    pl.plot(10**xp2s, 10**yp2s, c="tab:brown", lw=1)
+    pl.scatter(xi_xs, p2s, c="tab:green", ec="None", s=7)
+    pl.axhline(y=2, ls=":", c="black")
+    xlims = pl.xlim()
+    pl.loglog()
+    pl.xlabel(r"$(P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15})$")
+    #pl.xlabel(r"$((P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15}))^{1/2}$")
+    pl.ylabel(r"$P_3$ in $P$")
+    pl.ylim(0.8, 400)
+    #pl.axis("equal")
+    filename = "output/p3edot_inflection_geoff2.pdf"
+    print(filename)
+    pl.savefig(filename)
+
+    pl.show()
+
+
+def aliasing():
+
+    x1 = np.linspace(0, 1)
+    f1 = x1
+    f2 = 1 - x1
+
+    x2 = np.linspace(1, 10)
+    p1 = 1 / (1/x2)
+    p2 = 1 - 1 / (1/x2)
+
+    #pl.plot(x1, f1, c="C1")
+    #pl.plot(x1, f2, c="C2")
+    #pl.loglog()
+    #pl.show()
+
+
+    pl.plot(x2, p1, c="C1")
+    pl.plot(x2, p2, c="C2")
+    #pl.loglog()
+    pl.show()
+
+
+
+def p3p2edot(data, size=1e3):
+    """  """
+
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+    periods = np.array(data[17])
+    pdots = np.array(data[18])
+    p2s = np.fabs(np.array(data[4]))
+
+    p2s_theo = np.empty(shape=len(p3s))
+    rpc = np.empty(shape=len(p3s))
+
+    xi_p2 = []
+    xi_p3 = []
+    for i, p in enumerate(periods):
+        val = p ** (-5.5) * (pdots[i]/1e-15) # P2
+        val2 = p ** (-1.78) * (pdots[i]/1e-15) # P3
+        xi_p2.append(val)
+        xi_p3.append(val2)
+        p2 = 10 ** (0.14 * np.log10(p ** (-5.5) * (pdots[i]/1e-15)) + 1.31)
+        p2s_theo[i] = p2
+        rpc[i] = 150 * p ** 0.5
+    xi_p2 = np.array(xi_p2)
+    xi_p3 = np.array(xi_p3)
+
+    #"""
+    # sort according to xi_xs
+    idx = np.argsort(xi_p3)
+    xi_p2 = xi_p2[idx]
+    xi_p3 = xi_p3[idx]
+    p3s = p3s[idx]
+    ep3s = ep3s[idx]
+    edots = edots[idx]
+    periods = periods[idx]
+    pdots = pdots[idx]
+    p2s = p2s[idx]
+    p2s_theo = p2s_theo[idx]
+    rpc = rpc[idx]
+    #"""
+
+    # poarabolic fit
+    para = lambda v, x: v[0] * x ** 2 + v[1] * x + v[2]
+    xpc, ypc, vpc = least_sq_samex(np.log10(xi_p3), np.log10(rpc), para, [1,1, 1])
+
+
+    # linear fit
+    lin = lambda v, x:  v[0] * x + v[1]
+
+    # log(P2) = 0.14*( log(P^{-5.5}*Pdot) ) + 1.31
+    xp, yp, vp = least_sq(np.log10(xi_p2), np.log10(p2s), lin, [1,1], xmax=None) # xi_p2 vs.
+    xp2, yp2, vp2 = least_sq(np.log10(xi_p3), np.log10(p2s), lin, [1,1], xmax=None) # xi_p2 vs. real data
+    xp3, yp3, vp3 = least_sq_samex(np.log10(xi_p3), np.log10(p2s_theo), lin, [1,1]) # xi_p3 vs. Xiaoxi's fit
+    #print(vp)
+    #print(vp2)
+    print(vp3)
+
+    def p3aliased(p3, n):
+        if type(p3) == np.float64 or type(p3) == float:
+            if p3 > 1:
+                return p3 / (n * p3 - 1)
+            #elif p3 == 1:
+            #    return 100.
+            else:
+                return p3 / (1 - n * p3)
+        else:
+            res = []
+            for p3_ in p3:
+                if p3_ > 1:
+                    res.append(p3_ / (n * p3_ - 1))
+                #elif p3_ == 0:
+                #    res.append(200)
+                elif p3_ < 1:
+                    res.append(p3 / (1 - n * p3))
+            return np.array(res)
+
+    def p3fun(xs, w, th):
+        if type(xs) == np.float64:
+            if xs != th:
+                return np.fabs(1 / (1 - w / (xs - th)))
+            else:
+                return 1.
+        else:
+            res = []
+            for x in xs:
+                if x != th:
+                    res.append(np.fabs(1 / (1 - w / (x - th))))
+                else:
+                    res.append(1)
+            return np.array(res)
+    w = 1.0 # 1.0 # 1.5 #1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
+    th = -1.05 # -1.03 # -1.55 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+
+    # intrinsic dependence
+    xt = xi_p3 #np.logspace(np.log10(1e-3), np.log10(1e4), num=1000)
+    yt = p3fun(xt, w, th)
+
+    # intrinsic dependence in high xi region
+    ythi = []
+    xthi = []
+    for i, y in enumerate(yt):
+        n_ = 1
+        ym = y
+        while y < 2:
+            y = np.fabs(p3aliased(ym, n_))
+            n_ += 1
+            if n_ == 100:
+                break
+            #print(y, n_)
+        else:
+            xthi.append(xt[i])
+            ythi.append(y)
+    xthi = np.array(xthi)
+    ythi = np.array(ythi)
+
+    # drift rate
+    #dr = p2s_theo / yt  # P2 / P3
+    dr = 10 ** yp3 / yt  # P2 / P3
+
+    p2s_true = np.empty(shape=len(p3s))
+    p2s_nsp = np.empty(shape=len(p3s))
+    p2s_nsp_measured = np.empty(shape=len(p3s))
+    dr2 = np.empty(shape=len(p3s))
+
+    # true P2 (not measured) based on fit and drift rate..
+    for i in range(len(p2s)):
+        p2s_true[i] = 10**yp3[i] * (1 - dr[i] / 360)
+
+    nsp_fun = lambda v, x: v[0] * x + v[1]
+    xpoints = [-3, np.log10(7000)]
+    ypoints = [50,  2]
+    xnsp, ynsp, vnsp = least_sq(xpoints, ypoints, nsp_fun, [1, 1])
+
+    for i in range(len(p2s)):
+        p2s_nsp[i] = 360 / nsp_fun(vnsp, np.log10(xi_p3[i]))
+        dr2[i] = p2s_nsp[i] / yt[i]
+        p2s_nsp_measured[i] = p2s_nsp[i] / (1 - dr2[i] / 360)
+
+    pl.rc("font", size=8)
+    pl.rc("axes", linewidth=0.5)
+
+    pl.figure()
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    #pl.subplot(2,1,1)
+    pl.minorticks_on()
+    #pl.scatter(xi_p2, p2s, alpha=0.7, ec="None")
+    pl.scatter(xi_p3, p2s_theo, alpha=0.7, ec="None", s=5, c="tab:green")
+    pl.scatter(xi_p3, p3s, alpha=0.7, ec="None", c="tab:blue", s=10)
+    #pl.plot(10**xp, 10**yp, c="tab:red") #  xi_p2 vs.
+    #pl.plot(10**xp2, 10**yp2, c="tab:blue")
+    pl.plot(10**xp3, 10**yp3, c="tab:green", label=r"$P_2$ (fit)", zorder=99)
+    pl.plot(xt, yt, c="black", label=r"$P_3$")
+    pl.plot(xthi, ythi, c="black", ls="--", lw=0.7)
+    # drift rate
+    pl.plot(xi_p3, dr, c="tab:red", label = "drift rate $(P_2 / P_3)$", lw=3, alpha=0.7)
+    pl.scatter(xi_p3, rpc, c="C1", label = r"$R_{\rm pc}$", s=5)
+    pl.plot(10 ** xpc, 10 ** ypc, c="C1")
+
+    pl.plot(xi_p3, p2s_true, c="green", label = r"$P_{2, n_{sp}}^t =  P_2^m / (1 - D / 360)$", ls="--")
+    pl.plot(xi_p3, p2s_nsp, c="magenta", label = r"$P_2^t =  360 / n_{sp}$", ls="--")
+    pl.plot(xi_p3, p2s_nsp_measured, c="magenta", label = r"$P_{2,n_{sp}}^m = P_{2,n_{sp}}^t / (1 - D / 360) $")
+    #pl.plot(xi_p3, dr2, c="pink", label = "drift rate", ls="-")
+
+    xlims = pl.xlim()
+    pl.loglog()
+    #pl.xlabel(r"$(P / 1 {\rm s})^{-5.5} (\dot{P} / 10^{-15})$")
+    pl.xlabel(r"$(P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15})$")
+    pl.ylabel(r"$P_3$, $P_2$")
+    pl.legend(loc= "upper center")
+    #pl.ylim(0.8, 400)
+    #pl.axis("equal")
+    filename = "output/p3p2edot.pdf"
     print(filename)
     pl.savefig(filename)
 
