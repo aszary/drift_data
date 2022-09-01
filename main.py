@@ -265,6 +265,12 @@ def p3edot_final2():
     pl.p3edot_final2(d1)
 
 
+def psg_check():
+    d1 = da.p3dominant_driftonly()
+    pl.psg_check(d1)
+
+
+
 def main():
     #test()
     #latex_test() # obsolete
@@ -315,8 +321,9 @@ def main():
     #aliasing()
     #p3p2edot()
     #p2fun()
-    #p3edot_final()
-    p3edot_final2()
+    p3edot_final()
+    #p3edot_final2()
+    #psg_check()
 
 
     print("Bye")

@@ -6,7 +6,7 @@ from scipy.stats import ttest_1samp, ks_2samp
 from scipy.optimize import leastsq
 import scipy.stats as stats
 
-from modules.functions import least_sq, least_sq1D, odr, least_sq_samex
+from modules.functions import least_sq, least_sq1D, odr, least_sq_samex, least_sq_err
 import modules.functions as fun
 import modules.data as da
 
@@ -4264,7 +4264,7 @@ def p3edot_inflection_low(data, size=1e3):
 
     xi_xs = []
     for i, p in enumerate(periods):
-        val = p ** (-1.78) * (pdots[i]/1e-15)
+        val = p ** (-1.7) * (pdots[i]/1e-15)
         xi_xs.append(val)
     xi_xs = np.array(xi_xs)
 
@@ -4308,9 +4308,10 @@ def p3edot_inflection_low(data, size=1e3):
 
     # linear fit
     lin = lambda v, x:  v[0] * x + v[1]
-    xh, yh, vh = least_sq(np.log10(xi_high), np.log10(p3s_high), lin, [1,1], xmax=None)
+    xh, yh, vh, err = least_sq_err(np.log10(xi_high), np.log10(p3s_high), lin, [1,1])
     #xh2, yh2, vh2, err = least_sq1D(np.log10(xi_high), np.log10(p3s_high), lin, np.log10(ep3s_high), [1,1])
-    xh3, yh3, vh3, err3 = odr(np.log10(xi_high), np.log10(p3s_high), np.array([1 for i in range(len(ep3s_high))]), np.log10(ep3s_high),lin,  [1,1])
+    #xh3, yh3, vh3, err3 = odr(np.log10(xi_high), np.log10(p3s_high), np.array([0.1 for i in range(len(ep3s_high))]), np.log10(ep3s_high), lin,  [1,1])
+    print("Blue line:", vh, err)
 
     xl, yl, vl = least_sq(np.log10(xi_low), np.log10(p3s_low), lin, [1,1], xmax=None)
     #xl2, yl2, vl2, err2 = least_sq1D(np.log10(xi_low), np.log10(p3s_low), lin, np.log10(ep3s_low), [1,1])
@@ -4340,12 +4341,12 @@ def p3edot_inflection_low(data, size=1e3):
             return np.array(res)
 
     # dependence in question
-    a = vl[0]
-    b = vl[1]
-    #a = -0.7
-    #y0 = 0.2
-    #x0 = 1
-    #b = y0 - a * np.log10(x0)
+    #a = vl[0]
+    #b = vl[1]
+    a = -0.7
+    y0 = 0.27
+    x0 = 1
+    b = y0 - a * np.log10(x0)
     #a = 0.9
     #y0 = 0.1
     #x0 = 1
@@ -4380,18 +4381,19 @@ def p3edot_inflection_low(data, size=1e3):
     sigma_fun = lambda v, x: v[0] + v[1] * x
     v0 = [1, 1]
     xpoints = np.array([-3, 0, 4])
-    ypoints = np.array([1, 0.3, 0.1])
-    #ypoints = np.array([1, 1, 1])
+    #ypoints = np.array([1, 0.3, 0.1])
+    ypoints = np.array([1, 1, 1])
     xsig, ysig, vsig = least_sq(xpoints, ypoints, sigma_fun, v0, xmax=None)
     #pl.plot(xsig, ysig)
     #pl.scatter(xpoints, ypoints)
     #pl.show()
+    """
     def sigma_fun(v, x):
-        if x < 1:
+        if x < 0:
             return 1
         else:
-            return 0.7
-
+            return 0.01
+    #"""
 
     p3max = np.max(p3s)
     ns = []
@@ -4451,7 +4453,9 @@ def p3edot_inflection_low(data, size=1e3):
 
     p3s_model_hl = np.array(p3s_model_hl)
     xs_model_hl = np.array(xs_model_hl)
-    xm, ym, vm = least_sq(np.log10(xs_model_hl), np.log10(p3s_model_hl), lin, [1,1], xmax=None)
+    xm, ym, vm, errm = least_sq_err(np.log10(xs_model_hl), np.log10(p3s_model_hl), lin, [1,1])
+    print("Red line:", vm, errm)
+
 
     pl.rc("font", size=8)
     pl.rc("axes", linewidth=0.5)
@@ -4572,12 +4576,12 @@ def p3edot_inflection_high(data, size=1e3):
             return np.array(res)
 
     # dependence in question
-    a = vh[0]
-    b = vh[1]
-    #a = -0.7
-    #y0 = 0.2
-    #x0 = 1
-    #b = y0 - a * np.log10(x0)
+    #a = vh[0]
+    #b = vh[1]
+    a = 0.7
+    y0 = 0.2
+    x0 = 1
+    b = y0 - a * np.log10(x0)
     #a = 0.9
     #y0 = 0.1
     #x0 = 1
@@ -4618,6 +4622,12 @@ def p3edot_inflection_high(data, size=1e3):
     #pl.plot(xsig, ysig)
     #pl.scatter(xpoints, ypoints)
     #pl.show()
+    def sigma_fun(v, x):
+        if x < 0:
+            return 0.01
+        else:
+            return 1
+
 
     p3max = np.max(p3s)
 
@@ -5323,10 +5333,10 @@ def aliasing():
     p1 = 1 / (1/x2)
     p2 = 1 - 1 / (1/x2)
 
-    #pl.plot(x1, f1, c="C1")
-    #pl.plot(x1, f2, c="C2")
+    pl.plot(x1, f1, c="C1")
+    pl.plot(x1, f2, c="C2")
     #pl.loglog()
-    #pl.show()
+    pl.show()
 
 
     pl.plot(x2, p1, c="C1")
@@ -5814,13 +5824,13 @@ def p3edot_final(data, size=1e3):
 
     nsp_fun = lambda v, x: v[0] * x + v[1]
     xpoints = [-3, np.log10(7000)]
-    ypoints = [50,  50]
+    ypoints = [30,  30]
     xnsp, ynsp, vnsp = least_sq(xpoints, ypoints, nsp_fun, [1, 1])
 
 
     xi_xs = []
     for i, p in enumerate(periods):
-        val = p ** (-1.78) * (pdots[i]/1e-15)
+        val = p ** (-1.7) * (pdots[i]/1e-15)
         #val = (p ** (-1.78) * (pdots[i]/1e-15)) ** 0.5
         xi_xs.append(val)
         nsp =  nsp_fun(vnsp, np.log10(val))
@@ -5847,7 +5857,7 @@ def p3edot_final(data, size=1e3):
 
     indxs = np.argsort(10**yp)
     in_ = 10 ** xp[indxs[0]]
-    #in_ = 3
+    #in_ = 0.7
 
     print("Inflection point: ", in_)
 
@@ -5880,6 +5890,10 @@ def p3edot_final(data, size=1e3):
 
     xl, yl, vl = least_sq(np.log10(xi_low), np.log10(p3s_low), lin, [1,1], xmax=None)
     #xl2, yl2, vl2, err2 = least_sq1D(np.log10(xi_low), np.log10(p3s_low), lin, np.log10(ep3s_low), [1,1])
+
+    xl2 = np.linspace(np.log10(np.min(xi_xs)), np.log10(np.max(xi_xs)), num=100)
+    yl2 = lin(vl, xl2)
+
     xl3, yl3, vl3, err3 = odr(np.log10(xi_low), np.log10(p3s_low), np.array([1 for i in range(len(ep3s_low))]), np.log10(ep3s_low),lin,  [1,1])
 
     ############################################################################
@@ -5924,7 +5938,7 @@ def p3edot_final(data, size=1e3):
 
     w = 1.0 # 1.0 # 1.5 #1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
     #w = 1.2
-    th = -1.03 # -1.03 # -1.55 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+    th = -1.05 # -1.03 # -1.55 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
 
     # intrinsic dependence
     xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=1000)
@@ -5960,12 +5974,21 @@ def p3edot_final(data, size=1e3):
     fraction_fun = lambda v, x: v[0] + v[1] * x
     v0 = [1, 1]
     xpoints = np.array([-3, 4])
-    ypoints = np.array([0.55, 0.01])
+    ypoints = np.array([0.5, 0.01])
     xsig, ysig, vsig = least_sq(xpoints, ypoints, fraction_fun, v0, xmax=None)
     #pl.plot(xsig, ysig)
     #pl.scatter(xpoints, ypoints)
     #pl.show()
     #exit()
+
+    """
+    def fraction_fun(v, x):
+        if x < 0:
+            return 0.7
+        else:
+            return 0.1
+    #"""
+
     # intrinsic dependence variation # TODO improve it!?
     ytl = np.empty(len(yt))
     yth = np.empty(len(yt))
@@ -6089,39 +6112,56 @@ def p3edot_final(data, size=1e3):
         #p3s10_rand[zz] = p3s10[zz] # not random
     #"""
 
-    pl.rc("font", size=8)
-    pl.rc("axes", linewidth=0.5)
+    print("Min: ", np.min(xi_xs), "Max: ", np.max(xi_xs))
 
+    a = -0.7
+    y0 = 0.27
+    x0 = 1
+    b = y0 - a * np.log10(x0)
+    #a = 0.9
+    #y0 = 0.1
+    #x0 = 1
+    #b = y0 - a * np.log10(x0)
+
+    xll = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
+    yll = 10**lin([a, b], np.log10(xll))
+
+    pl.rc("font", size=13)
+    #pl.rc("axes", linewidth=0.5)
+
+    #pl.figure(figsize=(3.149606, 3.149606/1.618)) #
     pl.figure()
     pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
     #pl.subplot(2,1,1)
     pl.minorticks_on()
-    pl.scatter(xi_xs, p3s_rs, s=7, alpha=1.0, ec="None", c="tab:green", zorder=999)
-    pl.plot(10**xrs, 10**yrs, c="tab:green", zorder=999)
+    #pl.scatter(xi_xs, p3s_rs, s=7, alpha=1.0, ec="None", c="tab:green", zorder=999)
+    #pl.plot(10**xrs, 10**yrs, c="tab:green", zorder=999)
     #pl.scatter(xi_xs, p3s_rs2, s=7, alpha=1.0, ec="None", c="pink", zorder=999)
-    pl.scatter(xi_xs, p3s, alpha=0.7, ec="None")
+    pl.scatter(xi_xs, p3s, alpha=0.5, ec="None", c="tab:blue", label="observed", zorder=999)
     pl.errorbar(xi_xs, p3s, fmt='none', yerr=ep3s, color="tab:blue", zorder=2, alpha=0.3)
-    pl.scatter(xs_model, p3s_model, alpha=0.7, ec="None", color="tab:orange")
-    pl.scatter(xs_model_hl, p3s_model_hl, alpha=0.7, ec="None", color="tab:orange")
-    pl.plot(xt, yt, c="black")
-    pl.plot(xthi, ythi, c="black", ls="--")
-    pl.fill_between(xt, ytl2, yth2, color="grey", alpha=0.3)
-    pl.plot(10**xm, 10**ym, c="tab:red", lw=2)
+    pl.scatter(xs_model, p3s_model, alpha=0.7, ec="tab:orange", color="none", label="modelled", marker="s", lw=2)
+    #pl.scatter(xs_model_hl, p3s_model_hl, alpha=0.7, ec="None", color="tab:orange")
+    pl.plot(xt, yt, c="black", zorder=9995)
+    pl.plot(xthi, ythi, c="black", ls="--", zorder=9995)
+    pl.fill_between(xt, ytl2, yth2, color="grey", alpha=0.3, zorder=9994)
+    #pl.plot(10**xm, 10**ym, c="black", ls=":", zorder=9996 )
     #pl.plot(10**xp, 10**yp)
     #pl.plot(10**xl, 10**yl)
-    #pl.plot(10**xl2, 10**yl2)
+    #pl.plot(10**xl2, 10**yl2, c="black", ls=":", zorder=9996)
+    pl.plot(xll, yll, c="black", ls=":", zorder=9996)
     #pl.plot(10**xl3, 10**yl3, c="tab:red")
-    pl.plot(10**xh, 10**yh, c="tab:blue", lw=2)
+    #pl.plot(10**xh, 10**yh, c="tab:blue", lw=2)
     #pl.plot(10**xh2, 10**yh2, c="pink")
     #pl.plot(10**xh3, 10**yh3, c="tab:green")
     #pl.plot(xline, yline)
     pl.axhline(y=2, ls=":", c="black")
     xlims = pl.xlim()
     pl.loglog()
-    pl.xlabel(r"$(P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15})$")
+    pl.xlabel(r"$\xi = (P / 1 {\rm s})^{-1.7} (\dot{P} / 10^{-15})$")
     #pl.xlabel(r"$((P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15}))^{1/2}$")
-    pl.ylabel(r"$P_3$ in $P$")
-    pl.ylim(0.8, 400)
+    pl.ylabel(r"$P_3$")
+    pl.ylim(0.7, 410)
+    #pl.legend(loc=(0.15,0.845))
     #pl.axis("equal")
     filename = "output/p3edot_final.pdf"
     print(filename)
@@ -6146,13 +6186,13 @@ def p3edot_final2(data, size=1e3):
 
     nsp_fun = lambda v, x: v[0] * x + v[1]
     xpoints = [-3, np.log10(7000)]
-    ypoints = [50,  50]
+    ypoints = [20,  3]
     xnsp, ynsp, vnsp = least_sq(xpoints, ypoints, nsp_fun, [1, 1])
 
 
     xi_xs = []
     for i, p in enumerate(periods):
-        val = p ** (-1.78) * (pdots[i]/1e-15)
+        val = p ** (-1.7) * (pdots[i]/1e-15)
         #val = (p ** (-1.78) * (pdots[i]/1e-15)) ** 0.5
         xi_xs.append(val)
         nsp =  nsp_fun(vnsp, np.log10(val))
@@ -6237,34 +6277,70 @@ def p3edot_final2(data, size=1e3):
                     res.append(p3 / (1 - n * p3))
             return np.array(res)
 
+    """
+    #w = 1
+    #t = -2.03
+    f = lambda x, w, t: np.fabs(1 / (1 - w / (x - t)))
+    fm = lambda x, w, t: np.fabs(1 / (1 - w / ((1000-x) - t)))
+    #f2 = lambda x, w, t: np.fabs(1 / (1 - w / ((-x - t)*2)))
+    #f3 = lambda x, w, t: np.fabs(1 / (1 - w / (np.log10(x) - t)))
+    x = np.linspace(-3, 4, num=1000)
+    xl = np.logspace(-3, 4, num=1000)
+    pl.plot(xl, f(xl, 1, -1.03))
+    pl.plot(np.flip(xl), f(xl, 1, -1.03))
+    #pl.plot(x, fm(x, 1, 0.03))
+    #pl.plot(10**x, f2(x, w, t))
+    #pl.plot(xl, f3(xl, w, t), lw=10, alpha=0.3)
+    pl.loglog()
+    pl.show()
+    #print(x)
+    return
     #"""
+
+    xs_min = np.min(xi_xs)
+    xs_max = np.max(xi_xs)
+    #xprim = lambda x: 10 ** (np.log10(xs_max) - (np.log10(x) - np.log10(xs_min))) # neat
+    #xprim = lambda x: xs_max * xs_min / x # wow so simple
     def p3fun(xs, w, th):
         if type(xs) == np.float64:
             if xs != th:
-                return np.fabs(1 / (1 - w / (-xs - th)))
+                return np.fabs(1 / (1 - w / (xs_max * xs_min/xs - th)))
             else:
                 return 1.
         else:
             res = []
             for x in xs:
                 if x != th:
-                    res.append(np.fabs(1 / (1 - w / (-x - th))))
+                    res.append(np.fabs(1 / (1 - w / (xs_max * xs_min/x - th))))
                 else:
                     res.append(1)
             return np.array(res)
-    #"""
 
-    w = 1.0 # 1.0 # 1.5 #1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
+
+    w = 17 # 1.0 # 1.5 #1 # 0.767 #1 #9.02 #1.271 #1 #1 # 0.5 # 6.32 # 9.65
     #w = 1.2
-    th = -1.03 # -1.03 # -1.55 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
+    th = -17.5 # -1.03 # -1.55 #-1.05#-1.05 # -0.791 #-1.057 #-3.02 #-1.373 #-1.05 #-1 # -0.42 # -3.16 # -3.16
 
     # intrinsic dependence
-    xt = np.logspace(np.log10(1e-3), np.log10(1e4), num=1000)
-    yt = p3fun(xt, w, th)
 
-    # get minimum / maximum value
-    p3m_max = np.max(yt)
-    p3m_min = np.min(yt)
+    xt = np.logspace(np.log10(xs_min), np.log10(xs_max), num=1000)
+    yt = []
+    yt0 = []
+
+    for x in xt:
+        yt.append(p3fun(x, w, th))
+        #yt.append(p3fun(xprim(x), w, th))
+        #yt0.append(p3fun(x, w, th))
+    yt = np.array(yt)
+    #yt0 = np.array(yt0)
+
+    """
+    #pl.plot(xt, yt)
+    pl.plot(xt, yt0)
+    pl.loglog()
+    pl.show()
+    return
+    #"""
 
     # intrinsic dependence in high xi region
     ythi = []
@@ -6292,7 +6368,7 @@ def p3edot_final2(data, size=1e3):
     fraction_fun = lambda v, x: v[0] + v[1] * x
     v0 = [1, 1]
     xpoints = np.array([-3, 4])
-    ypoints = np.array([0.55, 0.01])
+    ypoints = np.array([0.001, 0.8])
     xsig, ysig, vsig = least_sq(xpoints, ypoints, fraction_fun, v0, xmax=None)
     #pl.plot(xsig, ysig)
     #pl.scatter(xpoints, ypoints)
@@ -6302,11 +6378,20 @@ def p3edot_final2(data, size=1e3):
     ytl = np.empty(len(yt))
     yth = np.empty(len(yt))
 
+    """
+    def fraction_fun(v, x):
+        if x > -0.3:
+            return 0.7
+        else:
+            return 0.1
+    #"""
+
     # generate model + sigma_fun
     for i, y in enumerate(yt):
         ytl[i] = 10 ** (np.log10(y) - np.abs(np.log10(y) - np.log10((1 - fraction_fun(vsig, np.log10(xt[i]))) * y)))
         yth[i] = 10 ** (np.log10(y) + np.abs(np.log10(y) - np.log10((1 - fraction_fun(vsig, np.log10(xt[i]))) * y)))
 
+    #"""
     # intrinsic dependence new variation (circle stuff)
     ytl2 = np.zeros(len(yt))
     yth2 = np.zeros(len(yt))
@@ -6340,7 +6425,7 @@ def p3edot_final2(data, size=1e3):
         #print(i, xt[i],  yt[i], ytl2[i], yth2[i])
 
     def get_sigma(xi):
-        """ WOW this is weird - you have too much time?"""
+        # WOW this is weird - you have too much time?
         mi = 1e50
         sig = 10
         for i, x in enumerate(xt):
@@ -6349,6 +6434,7 @@ def p3edot_final2(data, size=1e3):
                 sig = (np.log10(yth2[i]) - np.log10(ytl2[i])) / 2
                 mi = diff
         return sig
+    #"""
 
     # model data
     p3s_notobs = []
@@ -6363,6 +6449,7 @@ def p3edot_final2(data, size=1e3):
     for i in range(len(xi_xs)):
         aliased = False
         p3m = p3fun(xi_xs[i], w, th)
+        #p3m = p3fun(xprim(xi_xs[i]), w, th)
         p3 = 10 ** np.random.normal(np.log10(p3m), get_sigma(xi_xs[i]))
         #p3 = 10 ** np.random.normal(np.log10(p3m), np.abs(np.log10(p3m) - np.log10((1 - fraction_fun(vsig, np.log10(xi_xs[i])))*p3m)))
         #if xi_xs[i] < 1:
@@ -6402,7 +6489,7 @@ def p3edot_final2(data, size=1e3):
             p3s_model.append(p3obs)
             xs_model.append(xi_xs[i])
 
-        if xi_xs[i] > in_:
+        if xi_xs[i] < in_:
             p3s_model_hl.append(p3s_model[-1])
             xs_model_hl.append(xi_xs[i])
 
@@ -6437,20 +6524,21 @@ def p3edot_final2(data, size=1e3):
     pl.scatter(xs_model_hl, p3s_model_hl, alpha=0.7, ec="None", color="tab:orange")
     pl.plot(xt, yt, c="black")
     pl.plot(xthi, ythi, c="black", ls="--")
+    #pl.fill_between(xt, ytl, yth, color="grey", alpha=0.3)
     pl.fill_between(xt, ytl2, yth2, color="grey", alpha=0.3)
     pl.plot(10**xm, 10**ym, c="tab:red", lw=2)
     #pl.plot(10**xp, 10**yp)
-    #pl.plot(10**xl, 10**yl)
+    pl.plot(10**xl, 10**yl, c="tab:blue", lw=2)
     #pl.plot(10**xl2, 10**yl2)
     #pl.plot(10**xl3, 10**yl3, c="tab:red")
-    pl.plot(10**xh, 10**yh, c="tab:blue", lw=2)
+    #pl.plot(10**xh, 10**yh, c="tab:blue", lw=2)
     #pl.plot(10**xh2, 10**yh2, c="pink")
     #pl.plot(10**xh3, 10**yh3, c="tab:green")
     #pl.plot(xline, yline)
     pl.axhline(y=2, ls=":", c="black")
     xlims = pl.xlim()
     pl.loglog()
-    pl.xlabel(r"$(P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15})$")
+    pl.xlabel(r"$(P / 1 {\rm s})^{-1.7} (\dot{P} / 10^{-15})$")
     #pl.xlabel(r"$((P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15}))^{1/2}$")
     pl.ylabel(r"$P_3$ in $P$")
     pl.ylim(0.8, 400)
@@ -6459,4 +6547,90 @@ def p3edot_final2(data, size=1e3):
     print(filename)
     pl.savefig(filename)
 
+    pl.show()
+
+
+
+
+def psg_check(data, size=1e3):
+    """ version with p3 fraction as error - for the paper?"""
+
+    p3s = np.array(data[0])
+    ep3s = np.array(data[1])
+    edots = np.array(data[9])
+    periods = np.array(data[17])
+    pdots = np.array(data[18])
+    p3s_rs = np.zeros(len(p3s))
+    p3s_rs2 = np.zeros(len(p3s))
+
+    # check the sorting according to xi_xs below!
+
+
+    nsp_fun = lambda v, x: v[0] * x + v[1]
+    xpoints = [-3, np.log10(7000)]
+    ypoints = [30,  30]
+    xnsp, ynsp, vnsp = least_sq(xpoints, ypoints, nsp_fun, [1, 1])
+
+
+    xi_xs = []
+    for i, p in enumerate(periods):
+        val = p ** (-1.7) * (pdots[i]/1e-15)
+        #val = (p ** (-1.78) * (pdots[i]/1e-15)) ** 0.5
+        xi_xs.append(val)
+        nsp =  nsp_fun(vnsp, np.log10(val))
+        p3s_rs[i] = 20 / nsp * (edots[i] / 5e32) ** 0.5
+        #p3s_rs2[i] = 5.6 / nsp * (edots[i] / 4e31) ** 0.5 # Basu
+    xi_xs = np.array(xi_xs)
+
+    #"""
+    # sort according to xi_xs
+    idx = np.argsort(xi_xs)
+    xi_xs = xi_xs[idx]
+    p3s = p3s[idx]
+    ep3s = ep3s[idx]
+    edots = edots[idx]
+    periods = periods[idx]
+    pdots = pdots[idx]
+    p3s_rs = p3s_rs[idx]
+    p3s_rs2 = p3s_rs2[idx]
+    #"""
+
+    # eq. 3.39 CGS?
+    hperp = lambda b14, eta, alpha, p: 4.17 * (b14 ** 1.1 + 0.3) ** 2 * p / (b14 * np.sqrt(np.fabs(np.cos(alpha))) * eta)
+
+
+    # eq. 3.55 CGS?
+    hperp2 = lambda b14, p3, alpha, p: 26.2 * (b14 ** 1.1 + 0.3) ** 2 * p * p3 * np.sqrt(np.fabs(np.cos(alpha))) / b14
+
+
+
+    hp = hperp(2,0.01, np.pi/4, 1)
+    hp2 = hperp2(2, 0.001, np.pi/4, 1)
+    print(hp, hp2)
+    return
+
+
+
+    pl.rc("font", size=13)
+    #pl.rc("axes", linewidth=0.5)
+
+    #pl.figure(figsize=(3.149606, 3.149606/1.618)) #
+    pl.figure()
+    pl.subplots_adjust(left=0.11, bottom=0.13, right=0.99, top=0.99)
+    #pl.subplot(2,1,1)
+    pl.minorticks_on()
+    pl.scatter(xi_xs, p3s, alpha=0.5, ec="None", c="tab:blue", label="observed", zorder=999)
+    pl.errorbar(xi_xs, p3s, fmt='none', yerr=ep3s, color="tab:blue", zorder=2, alpha=0.3)
+    pl.axhline(y=2, ls=":", c="black")
+    xlims = pl.xlim()
+    pl.loglog()
+    pl.xlabel(r"$\xi = (P / 1 {\rm s})^{-1.7} (\dot{P} / 10^{-15})$")
+    #pl.xlabel(r"$((P / 1 {\rm s})^{-1.78} (\dot{P} / 10^{-15}))^{1/2}$")
+    pl.ylabel(r"$P_3$")
+    pl.ylim(0.7, 410)
+    #pl.legend(loc=(0.15,0.845))
+    #pl.axis("equal")
+    filename = "output/psg.pdf"
+    print(filename)
+    pl.savefig(filename)
     pl.show()

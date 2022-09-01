@@ -34,6 +34,33 @@ def least_sq_samex(x, y, fun, v0):
     return x, y_new, v
 
 
+def least_sq_err(x, y, fun, v0, size=200, times_min=0.9, times_max=1.1, show=False):
+    """
+    with errors
+    """
+    x_0 = min(x)
+    x_1 = max(x)
+    ## Error function
+    errfunc = lambda v, x, y: (fun(v, x) - y)
+    res = leastsq(errfunc, v0, args=(np.array(x), np.array(y)), maxfev=10000, full_output=True)
+    v, conv = res[0], res[1]
+    chi_sq_red2 = (res[2]['fvec'] ** 2.).sum() / (len(y)-len(v))
+    if conv is not None:
+        res_errs = conv * chi_sq_red2
+        errs = (np.absolute(res_errs[0][0])**0.5, np.absolute(res_errs[1][1])**0.5)
+        if show is True:
+            print('convolution (jacobian around the solution)', conv)
+            print('chi square:', sum(pow(errfunc(v, np.array(x), np.array(y)), 2.)))
+            print('chi^2_red = ', chi_sq_red2)
+            print('Parameters:', v)
+            print('Errors:', errs)
+            #print sum(pow(errfunc(v, np.array(x), np.array(y)), 2.))
+    else:
+        errs = (0, 0)
+    x_new = np.linspace(times_min*x_0, times_max*x_1, size)
+    y_new = fun(v, x_new)
+    return x_new, y_new, v, errs
+
 
 def least_sq1D(x, y, fun, err, v0, size=200, times_min=0.9, times_max=1.1):
     """
