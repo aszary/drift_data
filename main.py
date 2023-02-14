@@ -269,6 +269,9 @@ def psg_check():
     d1 = da.p3dominant_driftonly()
     pl.psg_check(d1)
 
+def best_drifters():
+    d1 = da.p3dominant_driftonly_best()
+    da.best_drifters(d1)
 
 
 def main():
@@ -321,9 +324,10 @@ def main():
     #aliasing()
     #p3p2edot()
     #p2fun()
-    p3edot_final()
+    #p3edot_final()
     #p3edot_final2()
     #psg_check()
+    best_drifters()
 
 
     print("Bye")

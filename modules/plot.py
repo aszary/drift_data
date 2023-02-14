@@ -54,6 +54,10 @@ def p3_edot(da1, da2):
             ep3s2[i].append(da_tmp["MP C{} F{}: P3_error".format(i+1, j+1)])
             edots2[i].append(da_tmp["Edot [ergs/s]"])
 
+
+    print("Phase modulation: ", len(p3s[0][0]))
+    print("Intensity modulation: ", len(p3s2[0][0]))
+
     pl.rc("font", size=12)
     pl.rc("axes", linewidth=0.5)
     pl.rc("lines", linewidth=0.5)
@@ -66,10 +70,10 @@ def p3_edot(da1, da2):
         for j in range(0, 5):
             pl.scatter(edots[i][j], p3s[i][j], color="C{}".format(1+i+j))
     """
-    pl.scatter(edots[0][0], p3s[0][0], color="tab:blue", label="drift", s=5, zorder=1)
+    pl.scatter(edots[0][0], p3s[0][0], color="tab:blue", label="phase", s=5, zorder=1)
     pl.errorbar(edots[0][0], p3s[0][0], fmt='none', yerr=np.array(ep3s[0][0]), color="tab:blue", zorder=2)
 
-    pl.scatter(edots2[0][0], p3s2[0][0], color="tab:red", label="P3only", s=5, zorder=3)
+    pl.scatter(edots2[0][0], p3s2[0][0], color="tab:red", label="intensity", s=5, zorder=3)
     pl.errorbar(edots2[0][0], p3s2[0][0], fmt='none', yerr=np.array(ep3s2[0][0]), color="tab:red", zorder=4)
     #pl.scatter(edots[1][0], p3s[1][0], color="tab:blue")
     #pl.errorbar(edots[1][0], p3s[1][0], fmt='none', yerr=np.array(ep3s[1][0]), color="tab:blue")
@@ -6598,17 +6602,14 @@ def psg_check(data, size=1e3):
     # eq. 3.39 CGS?
     hperp = lambda b14, eta, alpha, p: 4.17 * (b14 ** 1.1 + 0.3) ** 2 * p / (b14 * np.sqrt(np.fabs(np.cos(alpha))) * eta)
 
-
     # eq. 3.55 CGS?
     hperp2 = lambda b14, p3, alpha, p: 26.2 * (b14 ** 1.1 + 0.3) ** 2 * p * p3 * np.sqrt(np.fabs(np.cos(alpha))) / b14
-
 
 
     hp = hperp(2,0.01, np.pi/4, 1)
     hp2 = hperp2(2, 0.001, np.pi/4, 1)
     print(hp, hp2)
     return
-
 
 
     pl.rc("font", size=13)
