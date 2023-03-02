@@ -40,10 +40,11 @@ module Functions
         for n in n_range
             p3_ = abs(p3(p3_obs, n))
             dist = abs(log10(p3_pre) - log10(p3_))
+            #println("\t", n, " ", p3_, " ", dist, " p3pre=", p3_pre)
             if dist < min_
                 min_ = dist
                 n_best = n
-                p3_best = p3_
+                p3_best = p3(p3_obs, n) # not abs
             end
             #println("$n $p3_")
         end
@@ -118,8 +119,8 @@ module Functions
 
 
     function fit_line_log10(x_, y_; show_=false)
-        x = log10.(x_)
-        y = log10.(y_)
+        x = log10.(abs.(x_))
+        y = log10.(abs.(y_))
         data = DataFrame(X=x, Y=y)
         ols = lm(@formula(Y ~ X), data)
         co = coef(ols)
