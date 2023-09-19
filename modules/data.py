@@ -1,10 +1,13 @@
 from astropy.io import ascii
-from astropy.table import Table, vstack, setdiff
+from astropy.table import Table, vstack, setdiff, Column, join
+from astropy.coordinates import Angle, SkyCoord
+from astropy import units as u
 import pandas as pd
 import numpy as np
 from uncertainties import ufloat
 import matplotlib.pyplot as pl
 from scipy.stats import ttest_ind
+import psrqpy
 
 from modules.functions import *
 import modules.plot as plo
@@ -2345,9 +2348,73 @@ def best_drifters(d, filename="data/drifters_list.txt", csvname="data/stats.csv"
     df = df.sort_values(by=["SNR"], ascending=False)
     #df = df.sort_values(by=["w50"], ascending=False)
     print(df)
+    print("Number of sources: ", len(df))
 
+def get_coordinates(st, filename="data/pulsars_ra_dec.csv"):
+    # get RAJ. DECJ. from ATNF database and save to file
+    query = psrqpy.QueryATNF()
+    psrs = query.get_pulsars()
+    tab = "NAME, RAJ, DECJ\n"
+    for name in st["JName"]:
+        try:
+            tab += "{}, {}, {}\n".format(name,  psrs[name].RAJ, psrs[name].DECJ)
+            print(name)
+        except:
+            print("No pulsar {} found...".format(name))
+    f = open(filename, "w")
+    f.write(tab)
+    f.close()
+
+def read_coordinates(filename="data/pulsars_ra_dec.csv"):
+    tab = Table.read(filename)
+    return tab
+
+def all_drifters(filename="data/stats.csv"):
+    #pd.set_option("display.max_rows", None)
+    
+    # MeerKAT drifters!
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+    st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)] # get all drifters
+    st["Edot [ergs/s]"] = st["Edot [ergs/s]"].astype(float)
+
+    # PRESS observations
+    press_psrs = np.loadtxt("data/press.txt", dtype=str)
+    press_table = Table({"JName":press_psrs})
+
+
+    cross_match = join(st, press_table, keys="JName")
+
+
+    print("MeerKAT drifters: ", len(st))
+    print("PRESS pulsars: ", len(press_psrs))
+    #print(cross_match)
+    print("MeerKAT/Press cross match: ", len(cross_match))
+
+
+    # LOFAR potential obs
+    #get_coordinates(st) # get coordinates of st pulsars
+    locs = read_coordinates()
+    #locs["DECJ (float)"] = locs["DECJ"].astype(float)
+    #col = Column(range(len(locs)), name="DECJ (float)")
+    #locs.add_column(col)
+    ras = []
+    decs =[]
+    for i in range(len(locs["DECJ"])):
+        dec = locs["DECJ"][i]
+        ra = locs["RAJ"][i]
+        coord = SkyCoord(ra=ra, dec=dec, frame="fk5", unit=(u.hourangle, u.deg))
+        ras.append(coord.ra.hour)
+        decs.append(coord.dec.degree)
+    locs["RAJ (float)"] = ras
+    locs["DECJ (float)"] = decs
     #print(st)
+    ranges = [-10, 0, 10, 20]
+    nums = []
+    for r in ranges:
+        num = len(locs[locs["DECJ (float)"] > r])
+        nums.append(num)
+        print("Dec. > {} Num:{}".format(r, num))
 
-    #print(df)
-
-    pass
+    #pl.plot(ranges, nums)
+    #pl.show()
+    

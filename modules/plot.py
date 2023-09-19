@@ -6130,7 +6130,44 @@ def p3edot_final(data, size=1e3):
     xll = np.logspace(np.log10(1e-3), np.log10(1e4), num=100)
     yll = 10**lin([a, b], np.log10(xll))
 
-    pl.rc("font", size=13)
+
+    f = open("data/p3s.dat", "w")
+    f.write("# xi P3 Delta_P3\n")
+    for i in range(len(xi_xs)):
+        f.write("{} {} {}\n".format(xi_xs[i], p3s[i], ep3s[i]))
+    f.close()
+
+    f = open("data/p3s_model.dat", "w")
+    f.write("# xi P3\n")
+    for i in range(len(xs_model)):
+        f.write("{} {}\n".format(xs_model[i], p3s_model[i]))
+    f.close()
+
+    f = open("data/xt_yt.dat", "w")
+    f.write("# xi P3\n")
+    for i in range(len(xt)):
+        f.write("{} {}\n".format(xt[i], yt[i]))
+    f.close()
+
+    f = open("data/xthi_ythi.dat", "w")
+    f.write("# xi P3\n")
+    for i in range(len(xthi)):
+        f.write("{} {}\n".format(xthi[i], ythi[i]))
+    f.close()
+
+    f = open("data/xll_yll.dat", "w")
+    f.write("# xi P3\n")
+    for i in range(len(xll)):
+        f.write("{} {}\n".format(xll[i], yll[i]))
+    f.close()
+
+    f = open("data/fillxy.dat", "w")
+    f.write("# xi P3_min, P3_max\n")
+    for i in range(len(xt)):
+        f.write("{} {} {}\n".format(xt[i], ytl2[i], yth2[i]))
+    f.close()
+
+
     #pl.rc("axes", linewidth=0.5)
 
     #pl.figure(figsize=(3.149606, 3.149606/1.618)) #
@@ -6170,6 +6207,7 @@ def p3edot_final(data, size=1e3):
     filename = "output/p3edot_final.pdf"
     print(filename)
     pl.savefig(filename)
+    pl.savefig("output/p3edot_final.png")
 
     pl.show()
 

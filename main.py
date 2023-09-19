@@ -273,6 +273,9 @@ def best_drifters():
     d1 = da.p3dominant_driftonly_best()
     da.best_drifters(d1)
 
+def lofar_overlap():
+    da.all_drifters()
+
 
 def main():
     #test()
@@ -324,10 +327,11 @@ def main():
     #aliasing()
     #p3p2edot()
     #p2fun()
-    #p3edot_final()
+    p3edot_final()
     #p3edot_final2()
     #psg_check()
-    best_drifters()
+    #best_drifters()
+    #lofar_overlap()
 
 
     print("Bye")
