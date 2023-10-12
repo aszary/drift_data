@@ -47,6 +47,13 @@ def plot_edot_rahul2():
     d1, d2, d3 = da.positive_negative_mixed3()
     pl.p3_edot_rahul2([d1, d2, d3], ["positive", "negative", "mixed"])
 
+def plot_edot_rahul3():
+    # to get the names
+    #d1, d2, d3 = da.positive_negative_mixed4()
+    #pl.p3_edot_rahul2([d1, d2, d3], ["positive", "negative", "mixed"])
+
+    pos, neg = da.positive_negative_manual()
+    pl.p3_edot_rahul3(pos, neg)
 
 def plot_p():
     d1, d2 = da.drifting_p3only()
@@ -327,11 +334,12 @@ def main():
     #aliasing()
     #p3p2edot()
     #p2fun()
-    p3edot_final()
+    #p3edot_final()
     #p3edot_final2()
     #psg_check()
     #best_drifters()
     #lofar_overlap()
+    plot_edot_rahul3()
 
 
     print("Bye")

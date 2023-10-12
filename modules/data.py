@@ -348,6 +348,199 @@ def positive_negative_mixed3(filename="data/stats.csv"):
     return [jnames_pos, p3s_pos, ep3s_pos, edots_pos, dps_pos, ps_pos], [jnames_neg, p3s_neg, ep3s_neg, edots_neg, dps_neg, ps_neg], [jnames_mix, p3s_mix, ep3s_mix, edots_mix, dps_mix, ps_mix]
 
 
+def positive_negative_mixed4(filename="data/stats.csv", edot_max=2e32):
+    edot_max = 0 # take all!
+    st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
+    ce = st[st['Census']=='YES'] # select the census observation only
+    ce["Edot [ergs/s]"] = ce["Edot [ergs/s]"].astype(float)
+
+    jnames_pos = []
+    p3s_pos = []
+    ep3s_pos = []
+    edots_pos = []
+    dps_pos = []
+    ps_pos = []
+
+    jnames_neg = []
+    p3s_neg = []
+    ep3s_neg = []
+    edots_neg = []
+    dps_neg = []
+    ps_neg = []
+
+    for row in ce:
+        # get MP component numbers
+        mcs = [int(x) for x in row["MP 2dfs nrs"].split(",")]
+        for i,c in enumerate(mcs):
+            try:
+                # drift feature
+                #print("ip1 ", i+1, " c ", c)
+                f = int(row["MPdominantDriftFeature_C{}".format(i+1)]) # not c only two records
+                # P3
+                if row["MP_C{}_F{}".format(i+1, f)] == "drift":
+                    p3 = float(row["MP C{} F{}: P3_value".format(i+1, f)])
+                    p3error = float(row["MP C{} F{}: P3_error".format(i+1, f)])
+                    p2 = float(row["MP C{} F{}: P2_value".format(i+1, f)])
+                    p = float(row["Period [s]"])
+                    edot = float(row["Edot [ergs/s]"])
+                    jname = row["JName_paper"]
+                    driftpower = float(row["C{} Power".format(c)]) # here c is fine..
+                    if p2 > 0:
+                        if edot >= edot_max:
+                            jnames_pos.append(jname)
+                            p3s_pos.append(p3)
+                            ep3s_pos.append(p3error)
+                            edots_pos.append(edot)
+                            dps_pos.append(driftpower)
+                            ps_pos.append(p)
+                    elif p2 < 0:
+                        if edot >= edot_max:
+                            jnames_neg.append(jname)
+                            p3s_neg.append(p3)
+                            ep3s_neg.append(p3error)
+                            edots_neg.append(edot)
+                            dps_neg.append(driftpower)
+                            ps_neg.append(p)
+            except:
+                pass
+        # get IP components # adds only one record?!
+        ics = []
+        if row["IP 2dfs nrs"] != "???":
+            ics = [int(x) for x in row["IP 2dfs nrs"].split(",")]
+        for i,c in enumerate(ics):
+            try:
+                # drift feature
+                f = int(row["IPdominantDriftFeature_C{}".format(i+1)])
+                # P3
+                if row["IP_C{}_F{}".format(i+1, f)] == "drift":
+                    p3 = float(row["IP C{} F{}: P3_value".format(i+1, f)])
+                    p3error = float(row["IP C{} F{}: P3_error".format(i+1, f)])
+                    p2 = float(row["IP C{} F{}: P2_value".format(i+1, f)])
+                    edot = float(row["Edot [ergs/s]"])
+                    p = float(row["Period [s]"])
+                    jname = row["JName_paper"]
+                    driftpower = float(row["C{} Power".format(c)])
+                    if p2 > 0:
+                        if edot >= edot_max:
+                            jnames_pos.append(jname)
+                            p3s_pos.append(p3)
+                            ep3s_pos.append(p3error)
+                            edots_pos.append(edot)
+                            dps_pos.append(driftpower)
+                            ps_pos.append(p)
+                    elif p2 < 0:
+                        if edot >= edot_max:
+                            jnames_neg.append(jname)
+                            p3s_neg.append(p3)
+                            ep3s_neg.append(p3error)
+                            edots_neg.append(edot)
+                            dps_neg.append(driftpower)
+                            ps_neg.append(p)
+            except np.ma.core.MaskError:
+                pass
+
+    jnames_mix = []
+    p3s_mix = []
+    ep3s_mix = []
+    edots_mix = []
+    dps_mix = []
+    ps_mix = []
+
+    mixed = []
+    for name in jnames_pos:
+        if name in jnames_neg:
+           mixed.append(name)
+
+    # wow so lame...
+    for name in mixed:
+        i = jnames_pos.index(name)
+        jnames_mix.append(name)
+        p3s_mix.append(p3s_pos[i])
+        ep3s_mix.append(ep3s_pos[i])
+        edots_mix.append(edots_pos[i])
+        dps_mix.append(dps_pos[i])
+        ps_mix.append(ps_pos[i])
+        jnames_pos.pop(i)
+        p3s_pos.pop(i)
+        ep3s_pos.pop(i)
+        edots_pos.pop(i)
+        dps_pos.pop(i)
+        ps_pos.pop(i)
+        j = jnames_neg.index(name)
+        jnames_mix.append(name)
+        p3s_mix.append(p3s_neg[j])
+        ep3s_mix.append(ep3s_neg[j])
+        edots_mix.append(edots_neg[j])
+        dps_mix.append(dps_neg[j])
+        ps_mix.append(ps_neg[j])
+        jnames_neg.pop(j)
+        p3s_neg.pop(j)
+        ep3s_neg.pop(j)
+        edots_neg.pop(j)
+        dps_neg.pop(j)
+        ps_neg.pop(j)
+
+    print("Positive: ", len(jnames_pos))
+    print("Negative: ", len(jnames_neg))
+    print("Mixed: ", len(jnames_mix))
+
+    return [jnames_pos, p3s_pos, ep3s_pos, edots_pos, dps_pos, ps_pos], [jnames_neg, p3s_neg, ep3s_neg, edots_neg, dps_neg, ps_neg], [jnames_mix, p3s_mix, ep3s_mix, edots_mix, dps_mix, ps_mix]
+
+
+def positive_negative_manual(filename="data/stats.csv", posf="data/positive.txt", negf="data/negative.txt"):
+
+    st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table
+    ce = st[st['Census']=='YES'] # select the census observation only
+    ce["Edot [ergs/s]"] = ce["Edot [ergs/s]"].astype(float)
+
+    # positive drift
+    jnames_pos = []
+    p3s_pos = []
+    ep3s_pos = []
+    edots_pos = []
+
+    for line in open(posf).readlines():
+        jname = line.split()[0]
+        rec = ce[ce['JName']==jname]
+        fe = rec['PulsarDominantP3Feature'].value[0].split()
+        #print(fe)
+        feature = "{}dominantDriftFeature_{}".format(fe[0], fe[1])
+        f = int(rec[feature].value[0])
+        p3 =  float(rec["{} {} F{}: P3_value".format(fe[0], fe[1], f)])
+        ep3 =  float(rec["{} {} F{}: P3_error".format(fe[0], fe[1], f)])
+        edot = float(rec["Edot [ergs/s]"])
+        jnames_pos.append(jname)
+        p3s_pos.append(p3)
+        ep3s_pos.append(ep3)
+        edots_pos.append(edot)
+    
+
+    # negative drift
+    jnames_neg = []
+    p3s_neg = []
+    ep3s_neg = []
+    edots_neg = []
+
+
+
+    for line in open(negf).readlines():
+        jname = line.split()[0]
+        rec = ce[ce['JName']==jname]
+        fe = rec['PulsarDominantP3Feature'].value[0].split()
+        #print(fe)
+        feature = "{}dominantDriftFeature_{}".format(fe[0], fe[1])
+        f = int(rec[feature].value[0])
+        p3 =  float(rec["{} {} F{}: P3_value".format(fe[0], fe[1], f)])
+        ep3 =  float(rec["{} {} F{}: P3_error".format(fe[0], fe[1], f)])
+        edot = float(rec["Edot [ergs/s]"])
+        jnames_neg.append(jname)
+        p3s_neg.append(p3)
+        ep3s_neg.append(ep3)
+        edots_neg.append(edot)
+ 
+    return [jnames_pos, p3s_pos, ep3s_pos, edots_pos], [jnames_neg, p3s_neg, ep3s_neg, edots_neg]
+    
+
 
 def drifting_p3only2(filename="data/stats.csv"):
     st = Table.read(filename, format='ascii', header_start=0, data_start=2) # read in the table

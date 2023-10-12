@@ -337,12 +337,14 @@ def p3_edot_rahul2(datas, labels):
     ep3s = []
     edots = []
     dps = []
+    jnames = []
 
     for d in datas:
         p3s.append(d[1])
         ep3s.append(d[2])
         edots.append(d[3])
         dps.append(d[4])
+        jnames.append(d[0])
 
     # assuming aliasing for negative drift
     n = 1
@@ -377,6 +379,66 @@ def p3_edot_rahul2(datas, labels):
     print(filename)
     pl.savefig(filename)
     #pl.show()
+    """
+    print("Positive:")
+    print(jnames[0])
+    print("Negative:")
+    print(jnames[1])
+    print("Mixed:")
+    print(jnames[2])
+    """
+
+def p3_edot_rahul3(pos, neg):
+
+    p3s_pos = pos[1]
+    ep3s_pos = pos[2]
+    edots_pos = pos[3]
+    p3s_neg = neg[1]
+    ep3s_neg = neg[2]
+    edots_neg = neg[3]
+
+    # assuming aliasing for negative drift
+    n = 1
+    p3s_neg_in = p3s_rahul2(-np.array(p3s_neg), n=n) # TODO negative values here? check it!
+    ep3s_neg_in = p3s_rahul2(ep3s_neg, n=n)
+
+    print("Positive: ", len(p3s_pos))
+    print("Negative: ", len(p3s_neg))
+
+
+    pl.rc("font", size=7)
+    pl.rc("axes", linewidth=0.5)
+    pl.rc("lines", linewidth=0.5)
+
+    cmaps = [pl.cm.get_cmap('Reds'), pl.cm.get_cmap('Blues'), pl.cm.get_cmap('Greens')]
+    colors = ["tab:red", "tab:blue", "tab:green"]
+    #cmaps = [pl.cm.get_cmap('viridis'), pl.cm.get_cmap('inferno')]
+
+    #fig = pl.figure(figsize=(7.086614, 4.38189))  # 18 cm x 11.13 cm # golden ratio
+    #fig = pl.figure(figsize=(3.149606, 1.946605))  # 8 cm x  cm # golden ratio
+    fig = pl.figure(figsize=(3.149606, 3.149606/(4/3)))  # 8 cm x  cm # golden ratio
+    pl.subplots_adjust(left=0.15, bottom=0.17, right=0.97, top=0.99)
+
+    sc = pl.scatter(edots_pos, p3s_pos, c="C1", s=3, zorder=1, label="positive")
+    pl.errorbar(edots_pos, p3s_pos, fmt='none', yerr=ep3s_pos, color="C1", zorder=2)
+    sc = pl.scatter(edots_neg, p3s_neg, c="C2", s=3, zorder=1, label="negative", marker="s")
+    pl.errorbar(edots_neg, p3s_neg, fmt='none', yerr=ep3s_neg, color="C2", zorder=2)
+    sc = pl.scatter(edots_neg, p3s_neg_in, c="grey", s=3, zorder=1, label="negative (unaliased with $n=1$)", marker="s", alpha=0.7)
+    pl.errorbar(edots_neg, p3s_neg_in, fmt='none', yerr=ep3s_neg_in, color="grey", zorder=2, alpha=0.7)
+    #pl.plot(xll, yll)
+
+    pl.legend(fontsize=5)
+    pl.loglog()
+    yl = pl.ylim()
+    #pl.ylim([yl[0], 109])
+    pl.ylim([0.6, 109])
+    pl.xlabel("$\dot{E}$ (ergs/s)")
+    pl.ylabel(r"$P_3$ in $P$")
+    filename = "output/p3_edot_rahul_3.pdf"
+    print(filename)
+    pl.savefig(filename)
+    #pl.show()
+
 
 
 def p3_p(datas, labels):
@@ -544,6 +606,12 @@ def p3s_rahul2(p3s, n=1):
         #new_p3s[-1][-1].append([])
         p3_obs = p3s[i]
         p3 = 1.0 / (n + 1.0 / (p3_obs)) # p3_obs in Periods (taken from Julia version)
+        # CHECK this...
+        #p32 = 1.0 / (2 + 1.0 / (p3_obs))
+        #p33 = 1.0 / (3 + 1.0 / (p3_obs))
+        #p34 = 1.0 / (4 + 1.0 / (p3_obs))
+        #print(p3_obs, p3, p32, p33, p34)
+        #print()
         new_p3s.append(p3)
 
     """
