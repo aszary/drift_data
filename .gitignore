@@ -1,0 +1,11 @@
+*.pyc
+__pycache_
+.ipynb*
+output/*
+data/*
+stats.header
+julia/*pdf
+julia/discu*
+julia/*png
+julia/*png
+julia/plots

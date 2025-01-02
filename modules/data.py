@@ -7,7 +7,7 @@ import numpy as np
 from uncertainties import ufloat
 import matplotlib.pyplot as pl
 from scipy.stats import ttest_ind
-import psrqpy
+#import psrqpy
 
 from modules.functions import *
 import modules.plot as plo
