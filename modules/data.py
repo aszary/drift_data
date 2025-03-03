@@ -539,7 +539,6 @@ def positive_negative_manual(filename="data/stats.csv", posf="data/positive.txt"
         edots_neg.append(edot)
  
     return [jnames_pos, p3s_pos, ep3s_pos, edots_pos], [jnames_neg, p3s_neg, ep3s_neg, edots_neg]
-    
 
 
 def drifting_p3only2(filename="data/stats.csv"):
@@ -2229,7 +2228,7 @@ def check_p3edot_fun(data, sig_thresh_proc=10):
     # adding nsp dependence
     nsp_fun = lambda v, x: v[0] * x + v[1] + x ** 2 * v[2]
     v0 = [1, 1, 1]
-    xpoints = np.array([28, 31, 33, 35, 38]) # np.array([28, 30, 33, 38])
+    xpoints = np.array([28, 31, 33, 35, 37]) # np.array([28, 30, 33, 38])
     #ypoints = np.array([45, 30, 15, 10, 5])# np.array([60, 30, 15, 2])
     #ypoints = np.array([5, 10, 15, 30, 45])# np.array([60, 30, 15, 2])
     ypoints = np.array([20, 20, 20, 20, 20])# np.array([60, 30, 15, 2])
@@ -2611,3 +2610,171 @@ def all_drifters(filename="data/stats.csv"):
     #pl.plot(ranges, nums)
     #pl.show()
     
+
+def check_drifters(filename="data/stats.csv"):
+    import paramiko
+    import os
+    from getpass import getpass
+    
+    # MeerKAT drifters!
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+    st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)] # get all drifters
+    
+    # Create paths for each pulsar
+    base_path = "/fred/oz005/search_processed"
+    paths = []
+    for row in st:
+        path = f"{base_path}/{row['JName']}/{row['Obsname']}/{row['Freqname']}/single"
+        paths.append(path)
+    
+    # Setup SFTP connection
+    hostname = "ozstar.swin.edu.au"
+    username = "aszary"
+    
+    # Create SSH client
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.load_system_host_keys()
+    
+    try:
+        # Connect using SSH key authentication
+        ssh.connect(hostname, username=username)
+        sftp = ssh.open_sftp()
+        
+        # Check each path
+        existing_paths = []
+        path_sizes = {}
+        for path in paths:
+            try:
+                # Try to check if the directory exists
+                sftp.stat(path)
+                print(f"EXISTS: {path}")
+                existing_paths.append(path)
+                
+                # Get disk usage for the directory
+                stdin, stdout, stderr = ssh.exec_command(f"du -sh {path}")
+                size_output = stdout.read().decode().strip()
+                if size_output:
+                    size = size_output.split()[0]
+                    path_sizes[path] = size
+                    print(f"Size: {size}")
+                
+            except FileNotFoundError:
+                print(f"NOT FOUND: {path}")
+        
+        # Calculate total size if there are existing paths
+        if existing_paths:
+            paths_str = " ".join(existing_paths)
+            stdin, stdout, stderr = ssh.exec_command(f"du -sch {paths_str} | tail -n1")
+            total_output = stdout.read().decode().strip()
+            if total_output:
+                total_size = total_output.split()[0]
+                print(f"\nTotal size: {total_size}")
+                path_sizes['total'] = total_size
+        
+        return existing_paths, path_sizes
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return [], {}
+        
+    finally:
+        if 'sftp' in locals():
+            sftp.close()
+        if 'ssh' in locals():
+            ssh.close()
+
+
+def download_drifters(filename="data/stats.csv", outdir="output"):
+    import paramiko
+    import os
+    from astropy.table import Table
+    
+    print("\n=== Starting download_drifters ===")
+    
+    # MeerKAT drifters!
+    print(f"Reading data from: {filename}")
+    st = Table.read(filename, format='ascii', header_start=0, data_start=0)
+    st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)] # get all drifters
+    print(f"Found {len(st)} drifters in the table")
+    
+    # Create paths for each pulsar
+    base_path = "/fred/oz005/search_processed"
+    paths = []
+    for row in st:
+        path = f"{base_path}/{row['JName']}/{row['Obsname']}/{row['Freqname']}/single"
+        paths.append(path)
+    
+    print(f"Generated {len(paths)} paths to check")
+    
+    if not paths:
+        print("No paths found to download from")
+        return []
+    
+    # Create output directory
+    outdir_abs = outdir # outdir
+    print(f"Files will be downloaded to: {outdir_abs}")
+    #os.makedirs(outdir_abs, exist_ok=True)
+    
+    # Setup SFTP connection
+    hostname = "ozstar.swin.edu.au"
+    username = "aszary"
+    print(f"Connecting to {hostname} as {username}...")
+    
+    # Create SSH client
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.load_system_host_keys()
+    
+    downloaded_files = []
+    
+    try:
+        # Connect using SSH key authentication
+        ssh.connect(hostname, username=username)
+        print("SSH connection established")
+        sftp = ssh.open_sftp()
+        print("SFTP session opened")
+        
+        # Download files from each path
+        for path in paths:
+            try:
+                # Check if directory exists
+                sftp.stat(path)
+                print(f"\nFound directory: {path}")
+                
+                # List and download files
+                remote_files = sftp.listdir(path)
+                print(f"Found {len(remote_files)} files")
+                
+                for remote_file in remote_files:
+                    remote_path = f"{path}/{remote_file}"
+                    local_path = os.path.join(outdir_abs, remote_file)
+                    
+                    # Download the file
+                    print(f"Downloading: {remote_file}")
+                    sftp.get(remote_path, local_path)
+                    print(f"Saved to: {local_path}")
+                    downloaded_files.append(local_path)
+                    
+            except FileNotFoundError:
+                print(f"Directory not found: {path}")
+                continue
+            except Exception as e:
+                print(f"Error downloading from {path}: {str(e)}")
+                continue
+        
+        print(f"\nTotal files downloaded: {len(downloaded_files)}")
+        return downloaded_files
+        
+    except Exception as e:
+        print(f"Connection error: {str(e)}")
+        return []
+        
+    finally:
+        if 'sftp' in locals():
+            print("Closing SFTP session")
+            sftp.close()
+        if 'ssh' in locals():
+            print("Closing SSH connection")
+            ssh.close()
+        print("=== Finished download_drifters ===\n")

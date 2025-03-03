@@ -283,6 +283,10 @@ def best_drifters():
 def lofar_overlap():
     da.all_drifters()
 
+def download_drifters(outdir="output"):
+    #da.check_drifters(outdir=outdir)
+    da.download_drifters(outdir=outdir)
+
 
 def main():
     #test()
@@ -339,7 +343,8 @@ def main():
     #psg_check()
     #best_drifters()
     #lofar_overlap()
-    plot_edot_rahul3()
+    #plot_edot_rahul3()
+    download_drifters()
 
 
     print("Bye")

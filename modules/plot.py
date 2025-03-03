@@ -434,7 +434,8 @@ def p3_edot_rahul3(pos, neg):
     pl.ylim([0.6, 109])
     pl.xlabel("$\dot{E}$ (ergs/s)")
     pl.ylabel(r"$P_3$ in $P$")
-    filename = "/home/psr/output/p3_edot_rahul_3.pdf"
+    #filename = "/home/psr/output/p3_edot_rahul_3.pdf"
+    filename = "output/p3_edot_rahul_3.pdf"
     print(filename)
     pl.savefig(filename)
     #pl.show()
