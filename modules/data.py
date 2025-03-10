@@ -2728,18 +2728,23 @@ def download_drifters(filename="data/stats.csv", excluded_list="data/excluded_pu
     # Setup SFTP connection
     hostname = "ozstar.swin.edu.au"
     username = "aszary"
+
+    # Prompt for password instead of automatic login
+    password = input('Enter your password: ')
+    
     print(f"Connecting to {hostname} as {username}...")
     
     # Create SSH client
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.load_system_host_keys()
+    #ssh.load_system_host_keys() # automaic login
     
     downloaded_files = []
     
     try:
         # Connect using SSH key authentication
-        ssh.connect(hostname, username=username)
+        ssh.connect(hostname, username=username, password=password)
+        #ssh.connect(hostname, username=username) # automatic login
         print("SSH connection established")
         sftp = ssh.open_sftp()
         print("SFTP session opened")
