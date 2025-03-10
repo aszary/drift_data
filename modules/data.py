@@ -2685,7 +2685,7 @@ def check_drifters(filename="data/stats.csv"):
             ssh.close()
 
 
-def download_drifters(filename="data/stats.csv", outdir="output"):
+def download_drifters(filename="data/stats.csv", excluded_list="data/excluded_pulsars.txt", outdir="output"):
     import paramiko
     import os
     from astropy.table import Table
@@ -2698,12 +2698,21 @@ def download_drifters(filename="data/stats.csv", outdir="output"):
     st = st[(st['Census']=='YES')&(st['PulsarDominantP3Feature'].mask==False)] # get all drifters
     print(f"Found {len(st)} drifters in the table")
     
+    # Read excluded pulsars from a text file
+    with open(excluded_list, 'r') as file:
+        excluded_pulsars = [line.strip() for line in file.readlines()]
+
+    # Filter out excluded pulsars
+    st = st[~np.isin(st['JName'], excluded_pulsars)] # Exclude specified pulsars
+
     # Create paths for each pulsar
     base_path = "/fred/oz005/search_processed"
     paths = []
+    pulsars_and_times = []  # Store pulsar names and observation times
     for row in st:
         path = f"{base_path}/{row['JName']}/{row['Obsname']}/{row['Freqname']}/single"
         paths.append(path)
+        pulsars_and_times.append((row['JName'], row['Obsname']))
     
     print(f"Generated {len(paths)} paths to check")
     
@@ -2714,7 +2723,7 @@ def download_drifters(filename="data/stats.csv", outdir="output"):
     # Create output directory
     outdir_abs = outdir # outdir
     print(f"Files will be downloaded to: {outdir_abs}")
-    #os.makedirs(outdir_abs, exist_ok=True)
+    os.makedirs(outdir_abs, exist_ok=True)
     
     # Setup SFTP connection
     hostname = "ozstar.swin.edu.au"
@@ -2736,11 +2745,16 @@ def download_drifters(filename="data/stats.csv", outdir="output"):
         print("SFTP session opened")
         
         # Download files from each path
-        for path in paths:
+        for i, path in enumerate(paths):
             try:
                 # Check if directory exists
                 sftp.stat(path)
                 print(f"\nFound directory: {path}")
+                
+                # Create pulsar-specific subdirectory
+                pulsar_name, obs_time = pulsars_and_times[i]
+                pulsar_dir = os.path.join(outdir_abs, f"{pulsar_name}/{obs_time}")
+                os.makedirs(pulsar_dir, exist_ok=True)
                 
                 # List and download files
                 remote_files = sftp.listdir(path)
@@ -2748,7 +2762,7 @@ def download_drifters(filename="data/stats.csv", outdir="output"):
                 
                 for remote_file in remote_files:
                     remote_path = f"{path}/{remote_file}"
-                    local_path = os.path.join(outdir_abs, remote_file)
+                    local_path = os.path.join(pulsar_dir, remote_file)
                     
                     # Download the file
                     print(f"Downloading: {remote_file}")
