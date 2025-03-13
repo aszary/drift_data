@@ -283,7 +283,7 @@ def best_drifters():
 def lofar_overlap():
     da.all_drifters()
 
-def download_drifters(outdir="output"):
+def download_drifters(outdir="/home/psr/output/"):
     #da.check_drifters(outdir=outdir)
     da.download_drifters(outdir=outdir)
 
